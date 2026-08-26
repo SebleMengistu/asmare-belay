@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Environment & secrets — NEVER commit these
+.env
+.env.backup
+.env.*.local
+*.pem
+*.key
+secrets/
+auth.json
+
+# Build artifacts
+dist/
+build/
+backend/public/build/
+backend/public/hot
+frontend/dist/
+
+# Framework caches & logs
+*.log
+bootstrap/cache/*.php.php
+storage/app/private/*.key
+.npm/
+.cache/
+.vite/
+
+# Local databases (SQLite dev/test files hold machine-specific data)
+backend/database/database.sqlite
+*.sqlite-journal
+
+# Testing
+coverage/
+.phpunit.result.cache
+.phpunit.cache/
+
+# Machine-local dev helpers & their logs (flaky-renderer workarounds)
+/tools/
+
+# OS / IDE noise
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/*
+!.vscode/extensions.json
