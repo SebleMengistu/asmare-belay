@@ -185,7 +185,7 @@ onMounted(() => {
   </div>
   <button
     type="button"
-    class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+    class="btn-primary"
     @click="openCreate"
   >
     + New project
@@ -220,7 +220,7 @@ onMounted(() => {
           <span v-if="row.featured" class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">★</span>
         </td>
         <td class="px-4 py-3 text-right whitespace-nowrap">
-          <button type="button" class="font-medium text-indigo-600 hover:text-indigo-800" @click="openEdit(row)">Edit</button>
+          <button type="button" class="font-semibold text-brand-600 hover:text-brand-800" @click="openEdit(row)">Edit</button>
           <span class="px-1 text-slate-300">|</span>
           <button type="button" class="font-medium text-red-600 hover:text-red-800" @click="remove(row)">Delete</button>
         </td>
@@ -334,7 +334,7 @@ onMounted(() => {
         <button type="button" class="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-100" @click="showForm = false">
           Cancel
         </button>
-        <button type="submit" :disabled="saving" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50">
+        <button type="submit" :disabled="saving" class="btn-primary disabled:opacity-50">
           {{ saving ? 'Saving…' : 'Save project' }}
         </button>
       </div>

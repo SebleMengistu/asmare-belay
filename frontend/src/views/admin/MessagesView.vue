@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import http from '../../api/http'
 import BasePagination from '../../components/BasePagination.vue'
+import { fmtDate } from '../../utils/format'
 
 const loading = ref(true)
 const error = ref('')
@@ -12,16 +13,6 @@ const unreadOnly = ref(false)
 const page = ref(1)
 const expandedId = ref(null)
 
-const fmtDate = (iso) =>
-  iso
-    ? new Date(iso).toLocaleString(undefined, {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    : ''
 
 async function load() {
   loading.value = true
@@ -96,7 +87,7 @@ onMounted(load)
   <button
     type="button"
     class="rounded-md px-4 py-2 text-sm font-semibold"
-    :class="unreadOnly ? 'bg-indigo-600 text-white' : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-100'"
+    :class="unreadOnly ? 'bg-brand-600 text-white shadow-sm shadow-brand-600/30' : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-100'"
     @click="toggleReadFilter"
   >
     {{ unreadOnly ? 'Showing unread only' : 'Show unread only' }}
@@ -116,16 +107,16 @@ onMounted(load)
       v-for="message in messages"
       :key="message.id"
       class="rounded-xl border bg-white shadow-sm"
-      :class="message.read_at ? 'border-slate-200' : 'border-indigo-300'"
+      :class="message.read_at ? 'border-slate-200' : 'border-brand-300'"
     >
       <button type="button" class="flex w-full items-center gap-3 p-4 text-left" @click="toggleExpand(message)">
-        <span :class="message.read_at ? 'text-transparent' : 'font-bold text-indigo-600'">●</span>
+        <span :class="message.read_at ? 'text-transparent' : 'font-bold text-brand-600'">●</span>
         <span class="min-w-0 flex-1">
           <span class="font-medium text-slate-900">{{ message.name }}</span>
           <span class="ml-2 text-sm text-slate-400">{{ message.email }}</span>
           <span v-if="message.subject" class="block truncate text-sm text-slate-600">{{ message.subject }}</span>
         </span>
-        <time class="whitespace-nowrap text-xs text-slate-400">{{ fmtDate(message.created_at) }}</time>
+        <time class="whitespace-nowrap text-xs text-slate-400">{{ fmtDate(message.created_at, { datetime: true }) }}</time>
       </button>
 
       <dl v-if="expandedId === message.id" class="space-y-3 border-t border-slate-100 p-4 text-sm">

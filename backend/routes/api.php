@@ -3,7 +3,9 @@
 use App\Http\Controllers\Api\AnalyticsController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ContactController;
+use App\Http\Controllers\Api\FeedbackController;
 use App\Http\Controllers\Api\PublicController;
+use App\Http\Controllers\Api\SearchController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -23,6 +25,7 @@ Route::get('publications', [PublicController::class, 'publications']);
 Route::get('services', [PublicController::class, 'services']);
 Route::get('testimonials', [PublicController::class, 'testimonials']);
 Route::get('settings', [PublicController::class, 'settings']);
+Route::get('search', [SearchController::class, 'index']);
 
 /*
 |--------------------------------------------------------------------------
@@ -30,6 +33,7 @@ Route::get('settings', [PublicController::class, 'settings']);
 |--------------------------------------------------------------------------
 */
 Route::post('contact', [ContactController::class, 'store']);
+Route::post('feedback', [FeedbackController::class, 'store']);
 Route::post('analytics', [AnalyticsController::class, 'store']);
 
 /*
@@ -52,6 +56,7 @@ Route::middleware('auth:sanctum')->group(function () {
 */
 Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::get('dashboard', [\App\Http\Controllers\Admin\DashboardController::class, 'index']);
+    Route::get('analytics/overview', [\App\Http\Controllers\Admin\AnalyticsController::class, 'overview']);
 
     Route::get('profile', [\App\Http\Controllers\Admin\ProfileController::class, 'index']);
     Route::apiResource('profiles', \App\Http\Controllers\Admin\ProfileController::class)
@@ -72,6 +77,14 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(functi
         ->only(['index', 'show', 'destroy']);
     Route::post('messages/{id}/read', [\App\Http\Controllers\Admin\MessageController::class, 'markAsRead']);
 
+    Route::get('feedback/stats', [\App\Http\Controllers\Admin\FeedbackController::class, 'stats']);
+    Route::apiResource('feedback', \App\Http\Controllers\Admin\FeedbackController::class)
+        ->only(['index', 'show', 'destroy']);
+    Route::post('feedback/{id}/read', [\App\Http\Controllers\Admin\FeedbackController::class, 'markAsRead']);
+
     Route::get('settings', [\App\Http\Controllers\Admin\SettingController::class, 'index']);
     Route::put('settings', [\App\Http\Controllers\Admin\SettingController::class, 'update']);
+
+    Route::apiResource('media', \App\Http\Controllers\Admin\MediaController::class)
+        ->only(['index', 'store', 'destroy']);
 });

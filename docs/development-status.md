@@ -9,6 +9,8 @@
 | M3    | Public API, contact pipeline       | ✅ Implemented & tested                       |
 | M4    | Vue 3 SPA (public + admin)         | ✅ Implemented — `vite build` passes clean    |
 | M5a   | SEO endpoints + SPA meta-shell     | ✅ Implemented & tested                       |
+| M6a   | Feedback + global search           | ✅ Implemented & tested                       |
+| M6b   | Analytics dashboard + media library| ✅ Implemented & tested                       |
 | M5b   | Deploy configs (Nginx/Supervisor)  | ⏳ Next                                       |
 
 ## Completed this build
@@ -63,6 +65,37 @@
   (2: FRONTEND_URL redirect vs welcome fallback). Stale Laravel scaffold
   `ExampleTest` removed.
 
+## Feedback + search + analytics + media (M6)
+
+- **Feedback module (§12):** new `feedback` table/migration, `Feedback` model,
+  public `POST /api/v1/feedback` (`FeedbackRequest`, rating 1–5, optional
+  category/name/email), queued `ForwardFeedback` job → admin email +
+  optional Telegram. Admin inbox at `/admin/feedback` (`FeedbackView.vue`) with
+  unread filter, expand-to-read, stats (total/unread/avg rating/categories),
+  delete, and a public `/feedback` submission page (`FeedbackView.vue` public).
+  `manage feedback` permission added to the admin role.
+- **Global search (§23):** public `GET /api/v1/search?q=` (`SearchController`)
+  searches active projects, published posts, active publications and services
+  with `LIKE` + project `tech_stack` JSON matching, 2-char minimum. Public
+  `/search` SPA page (`SearchView.vue`) groups results into filterable
+  categories and is `noindex, nofollow`.
+- **Analytics dashboard (§16, §37):** `GET /admin/analytics/overview`
+  aggregates pageviews, unique visitors (hashed-IP dedup), contacts/feedback
+  and outbound events (github/linkedin/telegram/email/demo clicks + CV
+  download), plus top pages and a 14-day trend. Dashboard now renders these as
+  visitor/engagement widget cards + top-pages + outbound-clicks panels beyond
+  the existing content counts.
+- **Media library (§18):** `GET/POST/DELETE /admin/media` via `MediaController`
+  (Spatie `Media` model) — standalone uploads land on a `MediaLibrary` holder;
+  grid UI (`MediaLibraryView.vue`) with thumbnails, search, pagination, delete;
+  content-bound media (project screenshots, covers) is also listed. MIME/size
+  validation enforced by the framework upload rules.
+- **Test suite: 22 passing / 83 assertions** — existing suites (`PortfolioApiTest` 8,
+  `SeoTest` 3, `WebRoutesTest` 2) plus `FeedbackSearchAnalyticsTest` (9) covering
+  feedback, search, analytics and media-library upload/list/delete.
+  **All passing.**
+- **Frontend:** `vite build` passes clean with the new views.
+
 ## Environment notes
 
 - **PostgreSQL is not installed on this machine**, so the local + test
@@ -80,11 +113,13 @@
 
 ## Next steps
 
-1. ✅ SEO meta-shell + robots/sitemap (this milestone).
-2. ⏳ `deploy/` configs: Nginx vhost (SPA + API co-hosted), Supervisor queue
+1. ✅ SEO meta-shell + robots/sitemap (M5a).
+2. ✅ Feedback + global search (M6a).
+3. ✅ Analytics dashboard widgets + media library UI (M6b).
+4. ⏳ `deploy/` configs: Nginx vhost (SPA + API co-hosted), Supervisor queue
    worker + scheduler entries, backup scripts (§32–33) and DEPLOYMENT.md.
-3. Production hardening pass (rate limits on public POST routes, security
+5. Production hardening pass (rate limits on public POST routes, security
    headers middleware, HTTPS/HSTS notes, media S3 disk option).
-4. Remaining spec modules behind existing abstractions: teaching/research/
-   Odoo case-study content types (M6+), global search endpoint, analytics
-   dashboard widgets, feedback module, media library UI.
+6. Remaining spec modules behind existing abstractions: teaching/research/
+   Odoo case-study content types, blog revision history, blog-to-LinkedIn
+   sharing workflow, feedback analytics conversion, audit log UI.

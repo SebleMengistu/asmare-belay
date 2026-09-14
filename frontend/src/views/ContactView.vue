@@ -57,77 +57,57 @@ async function submit() {
 </script>
 
 <template>
-  <div class="mx-auto max-w-xl space-y-8">
-    <header>
-      <h1 class="text-2xl font-bold tracking-tight text-slate-900">Contact</h1>
-      <p class="text-sm text-slate-500">Have a project, role, or question? Send a message — I usually reply within a day.</p>
+  <div class="mx-auto max-w-3xl space-y-8">
+    <header class="text-center sm:text-left">
+      <p class="eyebrow">Say hello</p>
+      <h1 class="section-title">Let's build something together</h1>
+      <p class="mt-2 max-w-xl text-slate-600">
+        Have a project, role, or question? Send a message — I usually reply within a day.
+      </p>
     </header>
 
-    <div v-if="success" class="rounded-lg bg-emerald-50 p-4 text-sm text-emerald-700">{{ success }}</div>
-    <div v-if="error" class="rounded-lg bg-red-50 p-4 text-sm text-red-700">{{ error }}</div>
+    <div v-if="success" class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+      ✓ {{ success }}
+    </div>
+    <div v-if="error" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{{ error }}</div>
 
-    <form novalidate class="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm" @submit.prevent="submit">
-      <div class="grid gap-4 sm:grid-cols-2">
-        <label class="block space-y-1">
-          <span class="text-sm font-medium text-slate-700">Name *</span>
-          <input
-            v-model="form.name"
-            type="text"
-            required
-            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
-          />
-          <span v-if="fieldErrors.name" class="block text-xs text-red-600">{{ fieldErrors.name[0] }}</span>
+    <form novalidate class="card space-y-5 !p-6 sm:!p-8" @submit.prevent="submit">
+      <div class="grid gap-5 sm:grid-cols-2">
+        <label class="block space-y-1.5">
+          <span class="label">Name *</span>
+          <input v-model="form.name" type="text" required placeholder="tefera alagaw" class="input" />
+          <span v-if="fieldErrors.name" class="block text-xs font-medium text-red-600">{{ fieldErrors.name[0] }}</span>
         </label>
 
-        <label class="block space-y-1">
-          <span class="text-sm font-medium text-slate-700">Email *</span>
-          <input
-            v-model="form.email"
-            type="email"
-            required
-            class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
-          />
-          <span v-if="fieldErrors.email" class="block text-xs text-red-600">{{ fieldErrors.email[0] }}</span>
+        <label class="block space-y-1.5">
+          <span class="label">Email *</span>
+          <input v-model="form.email" type="email" required placeholder="tefera@gmail.com" class="input" />
+          <span v-if="fieldErrors.email" class="block text-xs font-medium text-red-600">{{ fieldErrors.email[0] }}</span>
         </label>
       </div>
 
-      <label class="block space-y-1">
-        <span class="text-sm font-medium text-slate-700">Phone (optional)</span>
-        <input
-          v-model="form.phone"
-          type="tel"
-          class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
-        />
+      <div class="grid gap-5 sm:grid-cols-2">
+        <label class="block space-y-1.5">
+          <span class="label">Phone <span class="font-normal text-slate-400">(optional)</span></span>
+          <input v-model="form.phone" type="tel" placeholder="+251 …" class="input" />
+        </label>
+
+        <label class="block space-y-1.5">
+          <span class="label">Subject</span>
+          <input v-model="form.subject" type="text" placeholder="Odoo consultation, Laravel project…" class="input" />
+        </label>
+      </div>
+
+      <label class="block space-y-1.5">
+        <span class="label">Message *</span>
+        <textarea v-model="form.message" rows="6" required placeholder="Tell me a little about what you need…" class="input resize-y"></textarea>
+        <span v-if="fieldErrors.message" class="block text-xs font-medium text-red-600">{{ fieldErrors.message[0] }}</span>
       </label>
 
-      <label class="block space-y-1">
-        <span class="text-sm font-medium text-slate-700">Subject</span>
-        <input
-          v-model="form.subject"
-          type="text"
-          placeholder="Odoo consultation, Laravel project…"
-          class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
-        />
-      </label>
-
-      <label class="block space-y-1">
-        <span class="text-sm font-medium text-slate-700">Message *</span>
-        <textarea
-          v-model="form.message"
-          rows="5"
-          required
-          class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
-        ></textarea>
-        <span v-if="fieldErrors.message" class="block text-xs text-red-600">{{ fieldErrors.message[0] }}</span>
-      </label>
-
-      <button
-        type="submit"
-        :disabled="submitting"
-        class="w-full rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
-      >
-        {{ submitting ? 'Sending…' : 'Send message' }}
+      <button type="submit" :disabled="submitting" class="btn-primary w-full">
+        {{ submitting ? 'Sending…' : 'Send message ✈' }}
       </button>
+      <p class="text-center text-xs text-slate-400">Your details are used only to respond to your enquiry.</p>
     </form>
   </div>
 </template>

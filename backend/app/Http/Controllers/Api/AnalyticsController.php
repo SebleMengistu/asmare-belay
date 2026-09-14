@@ -22,15 +22,22 @@ class AnalyticsController extends Controller
             return $this->noContent();
         }
 
-        AnalyticsEvent::create([
-            'event' => $request->validated('event', 'pageview'),
-            'path' => $request->validated('path'),
-            'referrer' => $request->validated('referrer'),
+        // Capture values before the request object goes out of scope.
+        $payload = [
+            'event'      => $request->validated('event', 'pageview'),
+            'path'       => $request->validated('path'),
+            'referrer'   => $request->validated('referrer'),
             'user_agent' => mb_substr((string) $request->userAgent(), 0, 512),
-            'ip' => hash('sha256', (string) $request->ip()),
-            'meta' => $request->validated('meta'),
-            'occurred_at' => now(),
-        ]);
+            'ip'         => hash('sha256', (string) $request->ip()),
+            'meta'       => $request->validated('meta'),
+            'occurred_at'=> now(),
+        ];
+
+        // Write after the HTTP response is sent so the client never waits on
+        // the Supabase round-trip (~500 ms from this network).
+        app()->terminating(function () use ($payload) {
+            AnalyticsEvent::create($payload);
+        });
 
         return $this->noContent();
     }

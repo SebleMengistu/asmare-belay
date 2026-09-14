@@ -1,13 +1,253 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&family=Great+Vibes&display=swap');
 @import "tailwindcss";
+
+/* Class-based dark mode — toggled by the theme store on <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------------------------------------------------------------------------
+   TEFERA design system — tokens
+   Brand: deep navy surfaces, royal blue primary, violet gradient accents.
+--------------------------------------------------------------------------- */
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-script: 'Great Vibes', cursive;
+
+  /* Royal blue — primary actions & links */
+  --color-brand-50:  #eef5ff;
+  --color-brand-100: #d9e8ff;
+  --color-brand-200: #b8d4ff;
+  --color-brand-300: #8bb8fe;
+  --color-brand-400: #5b95fb;
+  --color-brand-500: #3b76f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4fd8;
+  --color-brand-800: #1e40af;
+  --color-brand-900: #1e3a8a;
+  --color-brand-950: #172554;
+
+  /* Deep navy — dark surfaces (header, hero, footer) */
+  --color-navy-50:  #f2f6fc;
+  --color-navy-100: #e4ecf8;
+  --color-navy-200: #c3d4ee;
+  --color-navy-300: #93b1de;
+  --color-navy-400: #5d87c8;
+  --color-navy-500: #3a67ae;
+  --color-navy-600: #2a508c;
+  --color-navy-700: #23406e;
+  --color-navy-800: #14294d;
+  --color-navy-850: #0e1f42;
+  --color-navy-900: #0a1633;
+  --color-navy-950: #060d1f;
+
+  /* Ink — kept as an alias for the navy surfaces used across views */
+  --color-ink-900: #0a1633;
+  --color-ink-800: #0e1f42;
+  --color-ink-700: #14294d;
+
+  /* Violet — gradient partner + accent text */
+  --color-accent-300: #c4b5fd;
+  --color-accent-400: #a78bfa;
+  --color-accent-500: #8b5cf6;
+  --color-accent-600: #7c3aed;
+  --color-accent-700: #6d28d9;
+}
 
 :root {
   color-scheme: light;
+  --surface: #ffffff;
+  --card: #ffffff;
+  --hero: #0a1633;
+}
+
+html.dark {
+  color-scheme: dark;
+  --surface: #060d1f;
+  --card: #0e1f42;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  @apply bg-slate-50 text-slate-800 antialiased;
+  @apply text-slate-600 antialiased;
+  background: var(--surface);
+  font-feature-settings: 'cv02', 'cv03', 'cv04';
 }
 
-a {
-  @apply text-indigo-600 hover:text-indigo-800;
+html.dark body {
+  @apply text-slate-400;
+}
+
+::selection {
+  @apply bg-brand-600/90 text-white;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+  border-radius: 0.375rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  background-color: rgb(148 163 184 / 0.45);
+}
+::-webkit-scrollbar-thumb:hover { background-color: rgb(100 116 139 / 0.6); }
+
+/* ---------------------------------------------------------------------------
+   Component layer
+--------------------------------------------------------------------------- */
+@layer components {
+  .container-site {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Buttons -------------------------------------------------------------- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5
+      text-sm font-semibold tracking-tight transition-all duration-200
+      focus-visible:outline-none disabled:pointer-events-none disabled:opacity-60;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5
+      text-sm font-semibold tracking-tight transition-all duration-200
+      focus-visible:outline-none disabled:pointer-events-none disabled:opacity-60
+      text-white shadow-lg shadow-brand-600/30 bg-brand-600
+      hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow-xl hover:shadow-brand-600/40
+      active:scale-[0.98];
+  }
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5
+      text-sm font-semibold tracking-tight transition-all duration-200
+      focus-visible:outline-none disabled:pointer-events-none disabled:opacity-60
+      border border-slate-300/80 bg-white/70 text-slate-800 backdrop-blur
+      hover:border-brand-400 hover:text-brand-700 active:scale-[0.98]
+      dark:border-white/25 dark:bg-white/5 dark:text-white
+      dark:hover:border-white/50 dark:hover:bg-white/10 dark:hover:text-white;
+  }
+  .btn-outline-light {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5
+      text-sm font-semibold tracking-tight transition-all duration-200
+      focus-visible:outline-none disabled:pointer-events-none disabled:opacity-60
+      border border-white/25 bg-white/5 text-white
+      hover:border-white/50 hover:bg-white/10 active:scale-[0.98];
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5
+      text-sm font-semibold tracking-tight transition-all duration-200
+      focus-visible:outline-none disabled:pointer-events-none disabled:opacity-60
+      text-slate-600 hover:bg-slate-900/5 hover:text-slate-900;
+  }
+
+  /* Surfaces ------------------------------------------------------------- */
+  .card {
+    @apply rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm
+      dark:border-white/10 dark:bg-navy-850;
+  }
+  .card-hover {
+    @apply transition-all duration-300 hover:-translate-y-1
+      hover:border-brand-200 hover:shadow-xl hover:shadow-navy-900/[0.08]
+      dark:hover:border-brand-500/40 dark:hover:shadow-black/40;
+  }
+  .glass-panel {
+    @apply rounded-2xl border border-white/40 bg-white/60 backdrop-blur-xl
+      dark:border-white/10 dark:bg-white/5;
+  }
+  .panel-navy {
+    @apply rounded-2xl border border-white/10 bg-navy-900 shadow-xl shadow-navy-950/40;
+  }
+
+  /* Typography helpers --------------------------------------------------- */
+  .eyebrow {
+    @apply mb-2 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em]
+      text-brand-600 dark:text-brand-400;
+  }
+  .eyebrow::before {
+    content: '';
+    @apply h-px w-6 bg-gradient-to-r from-brand-500 to-accent-500;
+  }
+  .section-title {
+    @apply font-display text-2xl font-extrabold tracking-tight text-navy-900 sm:text-3xl
+      dark:text-white;
+  }
+  .text-gradient {
+    @apply bg-gradient-to-r from-brand-400 via-brand-500 to-accent-500 bg-clip-text text-transparent;
+  }
+  .link-underline {
+    @apply relative font-medium text-slate-600 transition-colors hover:text-slate-900
+      after:absolute after:-bottom-0.5 after:left-0 after:h-0.5 after:w-full
+      after:origin-left after:scale-x-0 after:rounded-full after:bg-gradient-to-r
+      after:from-brand-500 after:to-accent-500 after:transition-transform
+      after:duration-300 hover:after:scale-x-100 dark:text-slate-400 dark:hover:text-white;
+  }
+
+  /* Forms ---------------------------------------------------------------- */
+  .label {
+    @apply mb-1 block text-sm font-semibold text-navy-900 dark:text-slate-200;
+  }
+  .input {
+    @apply w-full rounded-lg border border-slate-300/80 bg-white px-3.5 py-2.5 text-sm
+      text-slate-900 placeholder:text-slate-400 shadow-sm transition
+      focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-500/15
+      dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500;
+  }
+  .input-dark {
+    @apply w-full rounded-lg border border-white/15 bg-white/10 px-3.5 py-2.5 text-sm
+      text-white placeholder:text-slate-400 transition
+      focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-500/25
+      [&>option]:text-slate-900;
+  }
+
+  /* Bits ------------------------------------------------------------------ */
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-slate-200/90
+      bg-white/70 px-2.5 py-0.5 text-xs font-medium text-slate-600
+      dark:border-white/10 dark:bg-white/5 dark:text-slate-300;
+  }
+  .skeleton {
+    @apply animate-pulse rounded-xl bg-slate-200/70 dark:bg-white/10;
+  }
+
+  /* Header nav ------------------------------------------------------------- */
+  .nav-link {
+    @apply relative border-b-2 border-transparent px-1 py-1.5 text-sm font-medium
+      text-slate-300 transition-colors hover:text-white;
+  }
+  .nav-link.is-active {
+    @apply border-brand-400 text-white;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Decorative utilities
+--------------------------------------------------------------------------- */
+@utility circuit-bg {
+  background-color: #0a1633;
+  background-image:
+    radial-gradient(58rem 30rem at 82% 0%, rgb(37 99 235 / 0.16), transparent 62%),
+    radial-gradient(46rem 26rem at 8% 100%, rgb(139 92 246 / 0.12), transparent 60%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280' viewBox='0 0 280 280'%3E%3Cg fill='none' stroke='%232d5bd7' stroke-opacity='0.22' stroke-width='1.2'%3E%3Cpath d='M24 24h90v64h56'/%3E%3Cpath d='M256 256h-76v-56h-64'/%3E%3Cpath d='M212 24v52h44'/%3E%3Cpath d='M24 212h52v44'/%3E%3Cpath d='M140 140h56'/%3E%3Cpath d='M256 140v-52h-44'/%3E%3C/g%3E%3Cg fill='%233b76f6' fill-opacity='0.45'%3E%3Ccircle cx='24' cy='24' r='2.6'/%3E%3Ccircle cx='170' cy='88' r='2.6'/%3E%3Ccircle cx='256' cy='256' r='2.6'/%3E%3Ccircle cx='116' cy='200' r='2.6'/%3E%3Ccircle cx='256' cy='76' r='2.6'/%3E%3Ccircle cx='76' cy='256' r='2.6'/%3E%3Ccircle cx='196' cy='140' r='2.6'/%3E%3Ccircle cx='212' cy='76' r='2.6'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+@utility dots-bg {
+  background-image: radial-gradient(rgb(10 22 51 / 0.07) 1px, transparent 1.4px);
+  background-size: 22px 22px;
+}
+
+html.dark .dots-bg {
+  background-image: radial-gradient(rgb(255 255 255 / 0.06) 1px, transparent 1.4px);
 }

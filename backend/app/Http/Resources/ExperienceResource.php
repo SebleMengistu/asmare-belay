@@ -21,6 +21,7 @@ class ExperienceResource extends JsonResource
             'description' => $this->description,
             'highlights' => $this->highlights,
             'display_order' => $this->display_order,
+            'is_active' => (bool) $this->is_active,
         ];
     }
 }

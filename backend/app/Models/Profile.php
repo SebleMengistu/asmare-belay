@@ -89,7 +89,7 @@ class Profile extends Model implements HasMedia
     {
         $this->addMediaCollection('avatar')
             ->singleFile()
-            ->acceptsFile(fn ($file) => in_array($file->getMimeType(), [
+            ->acceptsFile(fn ($file) => in_array($file->mimeType, [
                 'image/jpeg', 'image/png', 'image/webp', 'image/avif',
             ], true))
             ->registerMediaConversions(function (Media $media): void {
@@ -97,7 +97,7 @@ class Profile extends Model implements HasMedia
                 $this->addMediaConversion('card')->width(640);
             });
 
-        $this->addMediaCollection('resume')->acceptsFile(fn ($file) => in_array($file->getMimeType(), [
+        $this->addMediaCollection('resume')->acceptsFile(fn ($file) => in_array($file->mimeType, [
             'application/pdf', 'application/msword',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         ], true));

@@ -30,18 +30,18 @@ async function submit() {
 </script>
 
 <template>
-  <div class="flex min-h-screen items-center justify-center bg-slate-100 px-4">
+  <div class="flex min-h-screen items-center justify-center bg-slate-50 px-4">
     <form
       novalidate
-      class="w-full max-w-sm space-y-4 rounded-xl border border-slate-200 bg-white p-8 shadow-sm"
+      class="w-full max-w-sm space-y-4 rounded-lg border border-slate-200 bg-white p-8 shadow-sm"
       @submit.prevent="submit"
     >
-      <div class="space-y-1 text-center">
-        <h1 class="text-xl font-bold tracking-tight text-slate-900">TEFERA Admin</h1>
-        <p class="text-xs uppercase tracking-widest text-slate-400">Sign in to continue</p>
+      <div class="space-y-1">
+        <h1 class="text-lg font-semibold text-slate-900">Admin Login</h1>
+        <p class="text-sm text-slate-500">Sign in with your admin credentials.</p>
       </div>
 
-      <div v-if="error" class="rounded-lg bg-red-50 p-3 text-sm text-red-700">{{ error }}</div>
+      <div v-if="error" class="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{{ error }}</div>
 
       <label class="block space-y-1">
         <span class="text-sm font-medium text-slate-700">Email</span>
@@ -50,7 +50,7 @@ async function submit() {
           type="email"
           required
           autocomplete="username"
-          class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+          class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
         />
         <span v-if="fieldErrors.email" class="block text-xs text-red-600">{{ fieldErrors.email[0] }}</span>
       </label>
@@ -62,7 +62,7 @@ async function submit() {
           type="password"
           required
           autocomplete="current-password"
-          class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+          class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
         />
         <span v-if="fieldErrors.password" class="block text-xs text-red-600">{{ fieldErrors.password[0] }}</span>
       </label>
@@ -70,14 +70,10 @@ async function submit() {
       <button
         type="submit"
         :disabled="submitting"
-        class="w-full rounded-md bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+        class="w-full rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:opacity-50"
       >
         {{ submitting ? 'Signing in…' : 'Sign in' }}
       </button>
-
-      <p class="text-center text-xs text-slate-400">
-        Credentials are seeded via ADMIN_EMAIL / ADMIN_PASSWORD.
-      </p>
     </form>
   </div>
 </template>

@@ -16,6 +16,8 @@ class TestimonialResource extends JsonResource
             'company' => $this->company,
             'quote' => $this->quote,
             'rating' => $this->rating,
+            'display_order' => $this->display_order,
+            'is_active' => (bool) $this->is_active,
         ];
     }
 }

@@ -23,7 +23,7 @@ defineEmits(['change'])
       class="min-w-[2rem] rounded-md border px-2 py-1.5 text-sm font-medium"
       :class="
         n === currentPage
-          ? 'border-indigo-600 bg-indigo-600 text-white'
+          ? 'border-brand-600 bg-brand-600 text-white shadow-sm'
           : 'border-slate-300 bg-white hover:bg-slate-100'
       "
       @click="$emit('change', n)"

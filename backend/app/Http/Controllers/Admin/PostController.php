@@ -35,6 +35,10 @@ class PostController extends BaseCrudController
         $post = Post::create($data);
         $this->syncTags($post, $request->input('tags', []));
 
+        if ($request->hasFile('cover')) {
+            $post->addMediaFromRequest('cover')->toMediaCollection('cover');
+        }
+
         return $this->created(new PostResource($post), 'Post created.');
     }
 
@@ -49,6 +53,11 @@ class PostController extends BaseCrudController
 
         $post->update($data);
         $this->syncTags($post, $request->input('tags', []));
+
+        if ($request->hasFile('cover')) {
+            $post->clearMediaCollection('cover');
+            $post->addMediaFromRequest('cover')->toMediaCollection('cover');
+        }
 
         return $this->ok(new PostResource($post), 'Post updated.');
     }
@@ -71,7 +80,7 @@ class PostController extends BaseCrudController
 
     protected function validated(Request $request): array
     {
-        $id = $this->route('post') ?? $this->route('id');
+        $id = $request->route('post') ?? $request->route('id');
 
         return $request->validate([
             'title' => ['required', 'string', 'max:255'],
@@ -83,6 +92,7 @@ class PostController extends BaseCrudController
             'status' => ['nullable', 'string', 'in:draft,published'],
             'published_at' => ['nullable', 'date'],
             'tags' => ['nullable', 'array'],
+            'cover' => ['nullable', 'image', 'mimes:jpeg,png,webp,gif', 'max:10240'],
         ]);
     }
 }

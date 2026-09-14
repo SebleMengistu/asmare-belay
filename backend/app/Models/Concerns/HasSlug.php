@@ -24,12 +24,13 @@ trait HasSlug
     {
         $base = Str::slug($this->sluggableSource() ?? (string) $this->title);
 
-        $model = new static();
-        $query = $model->newQuery()->where('id', '!=', $this->id ?? 0);
+        $query = static::query()->where('id', '!=', $this->id ?? 0);
         $i = 1;
         $slug = $base;
 
-        while ($query->where('slug', $slug)->exists()) {
+        // Re-check against a fresh (cloned) builder each iteration so the
+        // candidate list stays correct for arbitrarily many duplicates.
+        while ((clone $query)->where('slug', $slug)->exists()) {
             $slug = $base.'-'.(++$i);
         }
 
@@ -38,6 +39,8 @@ trait HasSlug
 
     protected function sluggableSource(): ?string
     {
-        return $this->attributes['title'] ?? null;
+        $source = $this->attributes['title'] ?? $this->attributes['name'] ?? null;
+
+        return $source !== null ? (string) $source : null;
     }
 }

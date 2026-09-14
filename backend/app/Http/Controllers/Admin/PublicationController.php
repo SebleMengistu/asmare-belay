@@ -21,7 +21,7 @@ class PublicationController extends BaseCrudController
 
     public function store(Request $request): JsonResponse
     {
-        return $this->created(new PublicationResource(Publication::create($this->validated($request))), 'Publication created.');
+        return $this->created(new PublicationResource(Publication::create($this->withProfileId(Publication::class, $this->validated($request)))), 'Publication created.');
     }
 
     public function update(Request $request, int $id): JsonResponse
@@ -34,13 +34,17 @@ class PublicationController extends BaseCrudController
 
     protected function validated(Request $request): array
     {
+        if ($request->has('url')) {
+            $request->merge(['url' => $this->normalizeUrl($request->input('url'))]);
+        }
+
         return $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'authors' => ['nullable', 'string', 'max:500'],
             'venue' => ['nullable', 'string', 'max:255'],
             'type' => ['nullable', 'string', 'max:64'],
             'year' => ['nullable', 'string', 'max:16'],
-            'url' => ['nullable', 'url', 'max:255'],
+            'url' => ['nullable', 'url'],
             'doi' => ['nullable', 'string', 'max:255'],
             'abstract' => ['nullable', 'string'],
             'display_order' => ['nullable', 'integer'],

@@ -17,6 +17,10 @@ use App\Http\Responses\ApiResponse;
 use App\Models\Post;
 use App\Models\Profile;
 use App\Models\Project;
+use App\Models\Publication;
+use App\Models\Skill;
+use App\Models\Skill as Tech;
+use App\Support\PortfolioCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -30,7 +34,7 @@ class PublicController extends Controller
 
     protected function defaultProfile(): Profile
     {
-        return cache()->remember('portfolio.profile', 3600, function () {
+        return PortfolioCache::remember('profile', function () {
             return Profile::query()
                 ->with(['skills', 'experiences', 'educations', 'certifications'])
                 ->firstOrFail();
@@ -42,20 +46,41 @@ class PublicController extends Controller
     {
         $profile = $this->defaultProfile();
 
+        // Live stats — homepage numbers are computed straight from the database so
+        // the counters are always the truth (Projects/Publications/Technologies map
+        // to real tables). Years Experience & Students Trained have no source table,
+        // so those stay on the stored meta value.
+        // Live stats. Projects/Publications/Technologies/Years are computed straight
+        // from the database so homepage counters are always the truth. Students
+        // Trained has no source table, so it keeps the stored meta value.
+        $experienceYears = collect($profile->experiences()->where('is_active', true)->pluck('start_date'))
+            ->filter()
+            ->min();
+        $years = $experienceYears
+            ? (int) floor(now()->diffInYears(\Illuminate\Support\Carbon::parse($experienceYears)))
+            : null;
+
+        $profile->meta = array_merge($profile->meta ?? [], [
+            'projects_completed' => $profile->projects()->where('is_active', true)->count(),
+            'research_publications' => $profile->publications()->where('is_active', true)->count(),
+            'technologies' => $profile->skills()->where('is_active', true)->count(),
+            'experience_years' => $years ?? ($profile->meta['experience_years'] ?? 0),
+        ]);
+
         return $this->ok([
             'profile' => new ProfileResource($profile),
-            'featured_projects' => ProjectResource::collection(
+            'featured_projects' => PortfolioCache::remember('featured_projects', fn () => ProjectResource::collection(
                 $profile->projects()->with('skills')->where('featured', true)->where('is_active', true)->get()
-            ),
-            'recent_posts' => PostResource::collection(
+            )->resolve(), 'index'),
+            'recent_posts' => PortfolioCache::remember('recent_posts', fn () => PostResource::collection(
                 Post::published()->with('tags')->latest('published_at')->limit(3)->get()
-            ),
-            'testimonials' => TestimonialResource::collection(
+            )->resolve(), 'index'),
+            'testimonials' => PortfolioCache::remember('testimonials', fn () => TestimonialResource::collection(
                 $profile->testimonials()->where('is_active', true)->get()
-            ),
-            'services' => ServiceResource::collection(
+            )->resolve(), 'index'),
+            'services' => PortfolioCache::remember('services', fn () => ServiceResource::collection(
                 $profile->services()->where('is_active', true)->get()
-            ),
+            )->resolve(), 'index'),
         ]);
     }
 
@@ -70,96 +95,134 @@ class PublicController extends Controller
 
     public function skills(): JsonResponse
     {
-        $profile = $this->defaultProfile();
+        $payload = PortfolioCache::remember('skills', function () {
+            $profile = $this->defaultProfile();
 
-        return $this->ok([
-            'skills' => SkillResource::collection($profile->skills()->where('is_active', true)->get()),
-            'experiences' => ExperienceResource::collection($profile->experiences()->where('is_active', true)->get()),
-            'educations' => EducationResource::collection($profile->educations()->where('is_active', true)->get()),
-            'certifications' => CertificationResource::collection($profile->certifications()->where('is_active', true)->get()),
-        ]);
+            return [
+                'skills' => SkillResource::collection($profile->skills()->where('is_active', true)->get())->resolve(),
+                'experiences' => ExperienceResource::collection($profile->experiences()->where('is_active', true)->get())->resolve(),
+                'educations' => EducationResource::collection($profile->educations()->where('is_active', true)->get())->resolve(),
+                'certifications' => CertificationResource::collection($profile->certifications()->where('is_active', true)->get())->resolve(),
+            ];
+        });
+
+        return $this->ok($payload);
     }
 
     public function projects(Request $request): JsonResponse
     {
-        $query = Project::query()->with('skills')->where('is_active', true);
+        $category = $request->query('category') ?: '_all';
 
-        if ($request->filled('category')) {
-            $query->where('category', $request->query('category'));
-        }
+        $payload = PortfolioCache::remember('projects', function () use ($category) {
+            $query = Project::query()->with('skills')->where('is_active', true);
 
-        $projects = $query->orderBy('display_order')->orderByDesc('created_at')->paginate(12);
+            if ($category !== '_all') {
+                $query->where('category', $category);
+            }
 
-        return $this->ok(
-            ProjectResource::collection($projects),
-            'OK',
-            ['pagination' => $this->paginationMeta($projects)]
-        );
+            $projects = $query->orderBy('display_order')->orderByDesc('created_at')->paginate(12);
+
+            return [
+                'data' => ProjectResource::collection($projects)->resolve(),
+                'pagination' => $this->paginationMeta($projects),
+            ];
+        }, $category);
+
+        return $this->ok($payload['data'], 'OK', ['pagination' => $payload['pagination']]);
     }
 
     public function project(string $slug): JsonResponse
     {
-        $project = Project::query()->with('skills')->where('is_active', true)->where('slug', $slug)->firstOrFail();
+        $project = PortfolioCache::remember('project', function () use ($slug) {
+            return ProjectResource::make(
+                Project::query()->with('skills')->where('is_active', true)->where('slug', $slug)->firstOrFail()
+            )->resolve();
+        }, $slug);
 
-        return $this->ok(new ProjectResource($project));
+        return $this->ok($project);
     }
 
     public function posts(Request $request): JsonResponse
     {
-        $query = Post::published()->with('tags');
+        $tag = $request->query('tag') ?: '_all';
 
-        if ($request->filled('tag')) {
-            $query->whereHas('tags', fn ($q) => $q->where('slug', $request->query('tag')));
-        }
+        $payload = PortfolioCache::remember('posts', function () use ($tag) {
+            $query = Post::published()->with('tags');
 
-        $posts = $query->latest('published_at')->paginate(10);
+            if ($tag !== '_all') {
+                $query->whereHas('tags', fn ($q) => $q->where('slug', $tag));
+            }
 
-        return $this->ok(
-            PostResource::collection($posts),
-            'OK',
-            ['pagination' => $this->paginationMeta($posts)]
-        );
+            $posts = $query->latest('published_at')->paginate(10);
+
+            return [
+                'data' => PostResource::collection($posts)->resolve(),
+                'pagination' => $this->paginationMeta($posts),
+            ];
+        }, $tag);
+
+        return $this->ok($payload['data'], 'OK', ['pagination' => $payload['pagination']]);
     }
 
     public function post(string $slug): JsonResponse
     {
-        $post = Post::published()->with('tags')->where('slug', $slug)->firstOrFail();
+        $post = PortfolioCache::remember('post', function () use ($slug) {
+            return PostResource::make(
+                Post::published()->with('tags')->where('slug', $slug)->firstOrFail()
+            )->resolve();
+        }, $slug);
 
-        return $this->ok(new PostResource($post));
+        return $this->ok($post);
     }
 
     public function publications(): JsonResponse
     {
-        $profile = $this->defaultProfile();
+        $payload = PortfolioCache::remember('publications', function () {
+            $profile = $this->defaultProfile();
 
-        return $this->ok(PublicationResource::collection(
-            $profile->publications()->where('is_active', true)->orderBy('display_order')->get()
-        ));
+            return PublicationResource::collection(
+                $profile->publications()->where('is_active', true)->orderBy('display_order')->get()
+            )->resolve();
+        });
+
+        return $this->ok($payload);
     }
 
     public function services(): JsonResponse
     {
-        $profile = $this->defaultProfile();
+        $payload = PortfolioCache::remember('services', function () {
+            $profile = $this->defaultProfile();
 
-        return $this->ok(ServiceResource::collection(
-            $profile->services()->where('is_active', true)->orderBy('display_order')->get()
-        ));
+            return ServiceResource::collection(
+                $profile->services()->where('is_active', true)->orderBy('display_order')->get()
+            )->resolve();
+        });
+
+        return $this->ok($payload);
     }
 
     public function testimonials(): JsonResponse
     {
-        $profile = $this->defaultProfile();
+        $payload = PortfolioCache::remember('testimonials', function () {
+            $profile = $this->defaultProfile();
 
-        return $this->ok(TestimonialResource::collection(
-            $profile->testimonials()->where('is_active', true)->orderBy('display_order')->get()
-        ));
+            return TestimonialResource::collection(
+                $profile->testimonials()->where('is_active', true)->orderBy('display_order')->get()
+            )->resolve();
+        });
+
+        return $this->ok($payload);
     }
 
     public function settings(Request $request): JsonResponse
     {
-        return $this->ok(collect(\App\Models\Setting::where('is_public', true)->get())
-            ->pluck('value', 'key')
-            ->all());
+        $payload = PortfolioCache::remember('settings', function () {
+            return collect(\App\Models\Setting::where('is_public', true)->get())
+                ->pluck('value', 'key')
+                ->all();
+        });
+
+        return $this->ok($payload);
     }
 
     protected function paginationMeta($paginator): array

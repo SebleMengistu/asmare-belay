@@ -5,6 +5,7 @@ vendor/
 # Environment & secrets — NEVER commit these
 .env
 .env.backup
+.env.sqlite-backup
 .env.*.local
 *.pem
 *.key
@@ -37,6 +38,7 @@ coverage/
 
 # Machine-local dev helpers & their logs (flaky-renderer workarounds)
 /tools/
+/frontend/ite.log
 
 # OS / IDE noise
 .DS_Store

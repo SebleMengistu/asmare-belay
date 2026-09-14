@@ -21,7 +21,7 @@ class EducationController extends BaseCrudController
 
     public function store(Request $request): JsonResponse
     {
-        return $this->created(new EducationResource(Education::create($this->validated($request))), 'Education created.');
+        return $this->created(new EducationResource(Education::create($this->withProfileId(Education::class, $this->validated($request)))), 'Education created.');
     }
 
     public function update(Request $request, int $id): JsonResponse

@@ -22,6 +22,7 @@ class ServiceResource extends JsonResource
             'features' => $this->features,
             'cta_label' => $this->cta_label,
             'display_order' => $this->display_order,
+            'is_active' => (bool) $this->is_active,
         ];
     }
 }

@@ -21,7 +21,7 @@ class ServiceController extends BaseCrudController
 
     public function store(Request $request): JsonResponse
     {
-        return $this->created(new ServiceResource(Service::create($this->validated($request))), 'Service created.');
+        return $this->created(new ServiceResource(Service::create($this->withProfileId(Service::class, $this->validated($request)))), 'Service created.');
     }
 
     public function update(Request $request, int $id): JsonResponse

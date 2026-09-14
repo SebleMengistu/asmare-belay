@@ -6,17 +6,47 @@ const http = axios.create({
   headers: { Accept: 'application/json' },
 })
 
-// Attach the stored Bearer token to every request.
+// Simple in-memory cache for public GET requests.
+// Avoids re-fetching the same data on every SPA navigation (profile, projects,
+// services, etc. rarely change and are already cached server-side for 30 min).
+const cache = new Map()
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
 http.interceptors.request.use((config) => {
+  // Attach Bearer token for authenticated requests.
   const token = localStorage.getItem('tefera_token')
   if (token) config.headers.Authorization = `Bearer ${token}`
+
+  // Only cache public (unauthenticated) GETs — skip admin routes.
+  if (config.method === 'get' && !token && !config.url.includes('/admin')) {
+    const key = config.url + (config.params ? JSON.stringify(config.params) : '')
+    const cached = cache.get(key)
+    if (cached && Date.now() - cached.ts < CACHE_TTL) {
+      // Return a resolved adapter so Axios skips the network call entirely.
+      config.adapter = () => Promise.resolve({
+        data: cached.data,
+        status: 200,
+        statusText: 'OK (cached)',
+        headers: {},
+        config,
+      })
+    }
+  }
   return config
 })
 
 // Normalise API envelope into a friendly error on failure, preserving the
 // HTTP status and per-field validation errors for form handling.
 http.interceptors.response.use(
-  (res) => res.data,
+  (res) => {
+    // Store successful public GET responses in the cache.
+    const cfg = res.config
+    if (cfg.method === 'get' && !localStorage.getItem('tefera_token') && !cfg.url.includes('/admin')) {
+      const key = cfg.url + (cfg.params ? JSON.stringify(cfg.params) : '')
+      cache.set(key, { data: res.data, ts: Date.now() })
+    }
+    return res.data
+  },
   (err) => {
     const payload = err.response?.data
     const error = new Error(

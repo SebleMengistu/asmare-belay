@@ -20,6 +20,8 @@ class ProjectResource extends JsonResource
             'demo_url' => $this->demo_url,
             'tech_stack' => $this->tech_stack,
             'featured' => $this->featured,
+            'display_order' => $this->display_order,
+            'is_active' => (bool) $this->is_active,
             'start_date' => $this->start_date?->toDateString(),
             'end_date' => $this->end_date?->toDateString(),
             'skills' => SkillResource::collection($this->whenLoaded('skills')),

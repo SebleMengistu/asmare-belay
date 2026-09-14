@@ -20,6 +20,8 @@ class PublicationResource extends JsonResource
             'url' => $this->url,
             'doi' => $this->doi,
             'abstract' => $this->abstract,
+            'display_order' => $this->display_order,
+            'is_active' => (bool) $this->is_active,
         ];
     }
 }

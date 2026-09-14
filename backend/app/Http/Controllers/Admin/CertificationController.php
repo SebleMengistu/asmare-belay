@@ -21,7 +21,7 @@ class CertificationController extends BaseCrudController
 
     public function store(Request $request): JsonResponse
     {
-        return $this->created(new CertificationResource(Certification::create($this->validated($request))), 'Certification created.');
+        return $this->created(new CertificationResource(Certification::create($this->withProfileId(Certification::class, $this->validated($request)))), 'Certification created.');
     }
 
     public function update(Request $request, int $id): JsonResponse
@@ -34,6 +34,10 @@ class CertificationController extends BaseCrudController
 
     protected function validated(Request $request): array
     {
+        if ($request->has('credential_url')) {
+            $request->merge(['credential_url' => $this->normalizeUrl($request->input('credential_url'))]);
+        }
+
         return $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'issuer' => ['required', 'string', 'max:255'],
@@ -42,6 +46,7 @@ class CertificationController extends BaseCrudController
             'issued_date' => ['nullable', 'date'],
             'expiry_date' => ['nullable', 'date', 'after_or_equal:issued_date'],
             'skills' => ['nullable', 'array'],
+            'image' => ['nullable', 'string'],
             'display_order' => ['nullable', 'integer'],
             'is_active' => ['nullable', 'boolean'],
         ]);

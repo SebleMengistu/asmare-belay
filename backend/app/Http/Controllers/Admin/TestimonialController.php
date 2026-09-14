@@ -21,7 +21,7 @@ class TestimonialController extends BaseCrudController
 
     public function store(Request $request): JsonResponse
     {
-        return $this->created(new TestimonialResource(Testimonial::create($this->validated($request))), 'Testimonial created.');
+        return $this->created(new TestimonialResource(Testimonial::create($this->withProfileId(Testimonial::class, $this->validated($request)))), 'Testimonial created.');
     }
 
     public function update(Request $request, int $id): JsonResponse

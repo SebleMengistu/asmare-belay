@@ -26,6 +26,7 @@ class RolePermissionSeeder extends Seeder
         'manage services',
         'manage testimonials',
         'manage messages',
+        'manage feedback',
         'manage settings',
     ];
 

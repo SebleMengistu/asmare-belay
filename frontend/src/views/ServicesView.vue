@@ -51,11 +51,11 @@ onMounted(load)
       <article
         v-for="service in services"
         :key="service.id"
-        class="flex flex-col rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+        class="card card-hover flex flex-col p-6"
       >
         <h2 class="font-semibold text-slate-900">{{ service.title }}</h2>
 
-        <p v-if="priceOf(service)" class="mt-1 text-sm font-medium text-indigo-700">
+        <p v-if="priceOf(service)" class="mt-1 text-sm font-semibold text-gradient">
           From {{ priceOf(service) }}
           <span v-if="service.delivery" class="ml-1 font-normal text-slate-500">· {{ service.delivery }}</span>
         </p>
@@ -72,7 +72,7 @@ onMounted(load)
         <div class="mt-auto pt-6">
           <RouterLink
             to="/contact"
-            class="inline-block rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+            class="btn-primary"
           >
             {{ service.cta_label || 'Request this service' }}
           </RouterLink>

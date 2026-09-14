@@ -7,12 +7,12 @@
           v-model.trim="search"
           type="search"
           placeholder="Search..."
-          class="w-52 rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500"
+          class="w-52 rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-500/15"
           @input="load"
         />
         <button
           type="button"
-          class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+          class="btn-primary"
           :disabled="busy"
           @click="openForm()"
         >
@@ -20,6 +20,22 @@
         </button>
       </div>
     </header>
+
+    <div v-if="counts.length" class="flex flex-wrap items-center gap-2">
+      <span class="text-xs font-semibold uppercase tracking-wide text-slate-400">
+        {{ config.countsBy.label }}:
+      </span>
+      <span
+        v-for="c in counts"
+        :key="c.value"
+        class="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700"
+      >
+        {{ c.label }}
+        <span class="rounded-full bg-white px-1.5 py-0.5 text-[10px] font-bold text-brand-700 ring-1 ring-brand-100">
+          {{ c.count }}
+        </span>
+      </span>
+    </div>
 
     <p v-if="error" class="rounded-md bg-red-50 px-4 py-3 text-sm text-red-700">{{ error }}</p>
 
@@ -50,9 +66,7 @@
               <template v-else>{{ cell(row, col) }}</template>
             </td>
             <td class="whitespace-nowrap px-4 py-2 text-right">
-              <button type="button" class="mr-2 font-medium text-indigo-600 hover:underline" @click="openForm(row)">
-                Edit
-              </button>
+              <button type="button" class="mr-2 font-semibold text-brand-600 hover:text-brand-800" @click="openForm(row)">Edit</button>
               <button
                 type="button"
                 class="font-medium text-red-600 hover:underline disabled:opacity-40"
@@ -73,7 +87,7 @@
 
     <!-- Modal form -->
     <Teleport to="body">
-      <div v-if="editing" class="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/50 p-6">
+      <div v-if="editing" class="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-black/50 p-6" @click.self="editing = false">
         <form
           class="w-full max-w-xl space-y-4 rounded-lg bg-white p-6 shadow-xl"
           @submit.prevent="submit"
@@ -92,14 +106,59 @@
                 :id="field.key"
                 v-model="form[field.key]"
                 :rows="field.type === 'tags' ? 4 : 3"
-                class="col-span-2 rounded border border-slate-300 px-2 py-1.5 text-sm outline-none focus:border-indigo-500"
+                :placeholder="field.placeholder"
+                class="col-span-2 rounded border border-slate-300 px-2 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-500/15"
               ></textarea>
             </template>
 
+            <select
+              v-else-if="field.type === 'select'"
+              :id="field.key"
+              v-model="form[field.key]"
+              class="col-span-2 rounded border border-slate-300 bg-white px-2 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-500/15"
+            >
+              <option v-if="!field.required" value="">— None —</option>
+              <option v-for="opt in field.options" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+            </select>
+
             <label v-else-if="field.type === 'boolean'" class="col-span-2 flex h-8 items-center text-sm">
-              <input :id="field.key" v-model="form[field.key]" type="checkbox" class="size-4 accent-indigo-600" />
+              <input :id="field.key" v-model="form[field.key]" type="checkbox" class="size-4 accent-brand-600" />
               <span class="ml-2 text-slate-500">Enabled</span>
             </label>
+
+            <template v-else-if="field.type === 'image'">
+              <div class="col-span-2 flex items-center gap-3">
+                <label
+                  :for="`upload-${field.key}`"
+                  class="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                >
+                  {{ form[field.key] ? 'Choose another' : 'Choose image' }}
+                  <input
+                    :id="`upload-${field.key}`"
+                    type="file"
+                    :accept="field.accept"
+                    class="hidden"
+                    @change="onFileChange(field, $event)"
+                  />
+                </label>
+                <a
+                  v-if="form[field.key]"
+                  :href="form[field.key]"
+                  :target="form[field.key].startsWith('data:') ? undefined : '_blank'"
+                  :rel="form[field.key].startsWith('data:') ? undefined : 'noopener'"
+                >
+                  <img :src="form[field.key]" alt="" class="h-10 w-10 rounded object-cover" />
+                </a>
+                <button
+                  v-if="form[field.key]"
+                  type="button"
+                  class="text-xs font-medium text-red-600 hover:underline"
+                  @click="form[field.key] = ''"
+                >
+                  Remove
+                </button>
+              </div>
+            </template>
 
             <input
               v-else
@@ -107,7 +166,8 @@
               v-model="form[field.key]"
               :type="field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'"
               :step="field.type === 'number' ? 'any' : undefined"
-              class="col-span-2 rounded border border-slate-300 px-2 py-1.5 text-sm outline-none focus:border-indigo-500"
+              :placeholder="field.placeholder"
+              class="col-span-2 rounded border border-slate-300 px-2 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-500/15"
             />
           </div>
 
@@ -125,7 +185,7 @@
             </button>
             <button
               type="submit"
-              class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+              class="btn-primary"
               :disabled="saving"
             >
               {{ saving ? 'Saving...' : 'Save' }}
@@ -138,7 +198,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { createResource, deleteResource, listResource, updateResource } from '../../api/resources'
 
 const props = defineProps({ resourceKey: { type: String, required: true }, config: { type: Object, required: true } })
@@ -160,6 +220,25 @@ function blankRow() {
     else blank[f.key] = ''
   }
   return blank
+}
+
+function onFileChange(field, event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+  if (file.size > 2 * 1024 * 1024) {
+    formError.value = `${file.name} is too large — max 2 MB.`
+    event.target.value = ''
+    return
+  }
+  const reader = new FileReader()
+  reader.onload = () => {
+    form[field.key] = reader.result
+    formError.value = ''
+  }
+  reader.onerror = () => {
+    formError.value = 'Could not read the selected image.'
+  }
+  reader.readAsDataURL(file)
 }
 
 async function load() {
@@ -244,6 +323,21 @@ const HEAD_LABELS = {
   expiry_date: 'Expires',
 }
 
+const counts = computed(() => {
+  const field = props.config.countsBy?.field
+  if (!field || !rows.value.length) return []
+  const map = new Map()
+  for (const row of rows.value) {
+    const value = row[field] ?? ''
+    map.set(value, (map.get(value) ?? 0) + 1)
+  }
+  return [...map.entries()].map(([value, count]) => ({
+    value,
+    label: props.config.formats?.[field]?.[value] ?? (value || '—'),
+    count,
+  }))
+})
+
 function headLabel(col) {
   return HEAD_LABELS[col] ?? col.replaceAll('_', ' ').replace(/^\w/, (c) => c.toUpperCase())
 }
@@ -253,8 +347,19 @@ function cell(row, col) {
   if (Array.isArray(value)) value = value.join(', ')
   if (col.endsWith('_date') && value) value = String(value).slice(0, 10)
   if (value == null || value === '') return '—'
+  if (props.config.formats?.[col]?.[value]) return props.config.formats[col][value]
   return value
 }
+
+watch(
+  () => props.resourceKey,
+  () => {
+    search.value = ''
+    editing.value = false
+    error.value = ''
+    load()
+  },
+)
 
 onMounted(load)
 </script>

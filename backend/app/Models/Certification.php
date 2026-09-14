@@ -15,7 +15,7 @@ class Certification extends Model
      */
     protected $fillable = [
         'profile_id', 'name', 'issuer', 'credential_url', 'credential_id',
-        'issued_date', 'expiry_date', 'skills', 'display_order', 'is_active',
+        'issued_date', 'expiry_date', 'skills', 'image', 'display_order', 'is_active',
     ];
 
     protected $casts = [

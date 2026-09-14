@@ -21,9 +21,7 @@ class ExperienceController extends BaseCrudController
 
     public function store(Request $request): JsonResponse
     {
-        $data = $this->validated($request);
-
-        return $this->created(new ExperienceResource(Experience::create($data)), 'Experience created.');
+        return $this->created(new ExperienceResource(Experience::create($this->withProfileId(Experience::class, $this->validated($request)))), 'Experience created.');
     }
 
     public function update(Request $request, int $id): JsonResponse
@@ -36,6 +34,10 @@ class ExperienceController extends BaseCrudController
 
     protected function validated(Request $request): array
     {
+        if ($request->has('company_url')) {
+            $request->merge(['company_url' => $this->normalizeUrl($request->input('company_url'))]);
+        }
+
         return $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'company' => ['required', 'string', 'max:255'],

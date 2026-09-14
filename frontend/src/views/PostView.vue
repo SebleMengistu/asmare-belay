@@ -1,17 +1,15 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 import http from '../api/http'
 import { useSeo } from '../composables/useSeo'
+import { fmtDate } from '../utils/format'
 
 const route = useRoute()
 const loading = ref(true)
 const error = ref('')
 const notFound = ref(false)
 const post = ref(null)
-
-const fmtDate = (iso) =>
-  iso ? new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : ''
 
 async function load() {
   loading.value = true
@@ -63,12 +61,12 @@ onMounted(load)
       <header class="space-y-4">
         <RouterLink to="/posts" class="text-sm font-medium">← All writing</RouterLink>
         <h1 class="text-3xl font-bold leading-tight tracking-tight text-slate-900">{{ post.title }}</h1>
-        <p v-if="post.published_at" class="text-sm text-slate-500">{{ fmtDate(post.published_at) }}</p>
+        <p v-if="post.published_at" class="text-sm text-slate-500">{{ fmtDate(post.published_at, { long: true }) }}</p>
         <div v-if="post.tags?.length" class="flex flex-wrap gap-1.5">
           <span
             v-for="tag in post.tags"
             :key="tag.id ?? tag.slug"
-            class="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700"
+            class="chip hover:!border-brand-300 hover:!text-brand-700"
           >
             #{{ tag.name }}
           </span>

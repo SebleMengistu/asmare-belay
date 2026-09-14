@@ -1,9 +1,12 @@
 <template>
   <div class="flex min-h-screen bg-slate-100">
     <aside class="flex w-60 flex-col border-r border-slate-800 bg-slate-900 text-slate-200">
-      <div class="px-5 py-5">
-        <p class="text-lg font-bold tracking-tight text-white">TEFERA</p>
-        <p class="text-xs uppercase tracking-widest text-slate-500">Admin</p>
+      <div class="flex items-center gap-2.5 px-5 py-5">
+        <img src="/favicon.svg" alt="TEFERA logo" class="h-9 w-9 shrink-0 rounded-full" />
+        <div>
+          <p class="text-lg font-bold tracking-tight text-white">TEFERA</p>
+          <p class="text-xs uppercase tracking-widest text-slate-500">Admin</p>
+        </div>
       </div>
 
       <nav class="flex flex-col gap-1 px-3">
@@ -12,8 +15,8 @@
           :key="item.to"
           :to="item.to"
           class="rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-800"
-          active-class="bg-indigo-600 !text-white"
-          :exact-active-class="'bg-indigo-600 text-white'"
+          active-class=""
+          :exact-active-class="'bg-brand-600 text-white'"
         >
           {{ item.label }}
         </RouterLink>
@@ -50,7 +53,9 @@ const auth = useAuthStore()
 
 const items = [
   { label: 'Dashboard', to: '/admin' },
+  { label: 'Profile', to: '/admin/profile' },
   { label: 'Projects', to: '/admin/projects' },
+  { label: 'Blog', to: '/admin/posts' },
   { label: 'Skills', to: '/admin/skills' },
   { label: 'Experience', to: '/admin/experiences' },
   { label: 'Education', to: '/admin/educations' },
@@ -59,6 +64,8 @@ const items = [
   { label: 'Services', to: '/admin/services' },
   { label: 'Testimonials', to: '/admin/testimonials' },
   { label: 'Messages', to: '/admin/messages' },
+  { label: 'Feedback', to: '/admin/feedback' },
+  { label: 'Media', to: '/admin/media' },
 ]
 
 async function signOut() {

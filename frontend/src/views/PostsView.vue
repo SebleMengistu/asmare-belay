@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import http from '../api/http'
 import { useSeo } from '../composables/useSeo'
+import { fmtDate } from '../utils/format'
 
 useSeo({ title: 'Writing', description: 'Articles on teaching, software development and research.' })
 import BasePagination from '../components/BasePagination.vue'
@@ -23,9 +24,6 @@ const tags = computed(() => {
   }
   return [...map.entries()].map(([slug, name]) => ({ slug, name }))
 })
-
-const fmtDate = (iso) =>
-  iso ? new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : ''
 
 async function load() {
   loading.value = true
@@ -71,8 +69,8 @@ onMounted(load)
           class="rounded-full px-3 py-1 text-xs font-medium"
           :class="
             tag.slug === activeTag
-              ? 'bg-indigo-600 text-white'
-              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              ? 'bg-brand-600 text-white shadow-sm shadow-brand-600/30'
+              : 'ring-1 ring-slate-200 bg-white/70 text-slate-600 hover:bg-brand-50 hover:text-brand-700'
           "
           @click="setTag(tag.slug)"
         >
@@ -92,12 +90,12 @@ onMounted(load)
         <li v-for="post in posts" :key="post.id">
           <RouterLink
             :to="{ name: 'post', params: { slug: post.slug } }"
-            class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-indigo-300 sm:flex-row"
+            class="card card-hover flex flex-col gap-3 sm:flex-row"
           >
             <img v-if="post.cover" :src="post.cover" alt="" class="h-28 w-full rounded-lg object-cover sm:w-48" />
             <div class="min-w-0 space-y-1">
               <h2 class="font-semibold text-slate-900">{{ post.title }}</h2>
-              <p v-if="post.published_at" class="text-xs text-slate-400">{{ fmtDate(post.published_at) }}</p>
+              <p v-if="post.published_at" class="text-xs text-slate-400">{{ fmtDate(post.published_at, { long: true }) }}</p>
               <p v-if="post.excerpt" class="line-clamp-2 text-sm text-slate-600">{{ post.excerpt }}</p>
             </div>
           </RouterLink>

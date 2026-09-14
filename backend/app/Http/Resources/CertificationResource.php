@@ -18,7 +18,9 @@ class CertificationResource extends JsonResource
             'issued_date' => $this->issued_date?->toDateString(),
             'expiry_date' => $this->expiry_date?->toDateString(),
             'skills' => $this->skills,
+            'image' => $this->image,
             'display_order' => $this->display_order,
+            'is_active' => (bool) $this->is_active,
         ];
     }
 }

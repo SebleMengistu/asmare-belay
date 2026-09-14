@@ -35,9 +35,11 @@ class PortfolioApiTest extends TestCase
 
     public function test_public_skills_returns_seeded_skill_count(): void
     {
+        $expected = count(\Database\Seeders\ProfileSeeder::cvData()['skills']);
+
         $this->getJson('/api/v1/skills')
             ->assertOk()
-            ->assertJsonCount(12, 'data.skills');
+            ->assertJsonCount($expected, 'data.skills');
     }
 
     public function test_public_projects_returns_paginated_list(): void

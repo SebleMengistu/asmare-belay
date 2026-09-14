@@ -1,22 +1,15 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 import http from '../api/http'
 import { useSeo } from '../composables/useSeo'
+import { stackOf } from '../utils/format'
 
 const route = useRoute()
 const loading = ref(true)
 const error = ref('')
 const notFound = ref(false)
 const project = ref(null)
-
-const stackOf = (value) =>
-  Array.isArray(value)
-    ? value.filter(Boolean)
-    : String(value || '')
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean)
 
 const period = computed(() => {
   const start = project.value?.start_date
@@ -37,7 +30,7 @@ async function load() {
     useSeo({
       title: project.value.title,
       description: summary,
-      image: project.value.cover,
+      image: project.value.screenshots?.[0]?.card || undefined,
       type: 'article',
       jsonLd: {
         '@context': 'https://schema.org',
@@ -74,8 +67,8 @@ onMounted(load)
       <header class="space-y-3">
         <RouterLink to="/projects" class="text-sm font-medium">← All projects</RouterLink>
         <div class="flex flex-wrap items-center gap-3">
-          <h1 class="text-3xl font-bold tracking-tight text-slate-900">{{ project.title }}</h1>
-          <span v-if="project.category" class="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700">
+          <h1 class="font-display text-3xl font-extrabold tracking-tight text-slate-900">{{ project.title }}</h1>
+          <span v-if="project.category" class="chip !border-brand-200 !bg-brand-50/80 !text-brand-700">
             {{ project.category }}
           </span>
           <span v-if="project.featured" class="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">
@@ -89,7 +82,7 @@ onMounted(load)
             :href="project.demo_url"
             target="_blank"
             rel="noopener"
-            class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+            class="btn-primary"
           >
             Live demo ↗
           </a>

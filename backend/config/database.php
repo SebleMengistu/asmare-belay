@@ -97,6 +97,10 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            // Reuse one pooled connection per PHP worker instead of paying a
+            // fresh TCP/TLS handshake to Supabase's pooler on every request,
+            // which is 1-2s of pure latency on this network.
+            'persistent' => env('DB_PERSISTENT', true),
         ],
 
         'sqlsrv' => [

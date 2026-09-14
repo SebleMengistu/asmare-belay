@@ -20,6 +20,7 @@ class EducationResource extends JsonResource
             'grade' => $this->grade,
             'description' => $this->description,
             'display_order' => $this->display_order,
+            'is_active' => (bool) $this->is_active,
         ];
     }
 }

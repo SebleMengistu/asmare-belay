@@ -69,7 +69,9 @@ export function useSeo(options = {}) {
       ? title
       : `${title} · ${SITE_NAME}`
 
-  const url = absoluteUrl(window.location.pathname + window.location.search)
+  // Canonical should point to the clean path without query string params
+  // (query strings like ?page=2 or ?tag=x are content variants, not canonical URLs)
+  const url = absoluteUrl(window.location.pathname)
   const imageUrl = absoluteUrl(image)
 
   upsertMeta('name', 'description', description)
