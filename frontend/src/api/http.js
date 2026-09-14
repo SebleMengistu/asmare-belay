@@ -1,8 +1,9 @@
 import axios from 'axios'
 
 // In dev, Vite proxies /api and /storage to Laravel (see vite.config.js).
+// In production (Vercel), VITE_API_BASE_URL must point to the deployed backend.
 const http = axios.create({
-  baseURL: '/api/v1',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api/v1',
   headers: { Accept: 'application/json' },
 })
 
