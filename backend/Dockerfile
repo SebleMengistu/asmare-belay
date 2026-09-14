@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1
 # TEFERA Portfolio — Laravel 12 (PHP 8.2) production container
-# Runtime: php:8.2-apache (mod_php — Laravel 12 is entirely compatible)
+# Build context: ./backend
 
+# ---- Stage 1: PHP + Apache base with all system deps ----
 FROM php:8.2-apache AS base
 
-# ---- system deps needed by Laravel 12 core + medialibrary ----
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git unzip zip libzip-dev \
         libpng-dev libjpeg62-turbo-dev libfreetype6-dev \
@@ -16,15 +16,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && a2enmod rewrite headers \
     && rm -rf /var/lib/apt/lists/*
 
-# ---- composer (official image as the builder) ----
-FROM composer:2 AS composer-builder
+# ---- Stage 2: Composer dependency install ----
+FROM composer:2 AS vendor-builder
 
-# ---- runtime image ----
+WORKDIR /app
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-interaction --no-progress --optimize-autoloader --prefer-dist
+
+# ---- Stage 3: Runtime image ----
 FROM base
 
 WORKDIR /var/www/html
 
-# 1) If installed, dump all PHP.ini recommendations minimal + security header.
+# PHP tuning
 RUN { \
     echo 'memory_limit=512M'; \
     echo 'upload_max_filesize=64M'; \
@@ -33,21 +37,23 @@ RUN { \
     echo 'expose_php=Off'; \
   } > /usr/local/etc/php/conf.d/zz-tefera.ini
 
-# 2) Apache: point DOCROOT at public/ so routes reach index.php (SPA history + API).
-RUN sed -ri 's#DocumentRoot /var/www/html#DocumentRoot /var/www/html/public#; s#<Directory /var/www/html>#<Directory /var/www/html/public>#' /etc/apache2/sites-available/000-default.conf \
- && sed -ri 's#/var/www/html/(.*)/??#/var/www/html/#' /dev/null 2>/dev/null || true
+# Apache: point DocumentRoot at public/
+RUN sed -ri \
+    's#DocumentRoot /var/www/html#DocumentRoot /var/www/html/public#; s#<Directory /var/www/html>#<Directory /var/www/html/public>#' \
+    /etc/apache2/sites-available/000-default.conf
 
-# 3) project files (respects .dockerignore → no vendor/ or .env leaks into image)
+# Copy application source (build context is ./backend)
 COPY . .
 
-# 4) production vendor install (no dev deps, no scripts that need interactive tty)
-RUN composer install --no-dev --no-interaction --no-progress --optimize-autoloader --prefer-dist \
- && php artisan storage:link --no-interaction || true \
- && mkdir -p bootstrap/cache storage/framework/cache/data storage/framework/sessions storage/framework/views \
+# Copy vendor from builder stage (has all composer deps)
+COPY --from=vendor-builder /app/vendor ./vendor
+
+# Prepare storage dirs and permissions
+RUN mkdir -p bootstrap/cache storage/framework/cache/data storage/framework/sessions storage/framework/views \
  && chmod -R 775 storage bootstrap/cache \
  && chown -R www-data:www-data .
 
-# 5) one-shot boot ritual (migrate + seed so the SPA never shows an empty portfolio)
+# Entrypoint
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
