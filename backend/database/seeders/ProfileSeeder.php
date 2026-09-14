@@ -286,7 +286,8 @@ class ProfileSeeder extends Seeder
                     'type' => 'thesis',
                     'year' => '2025',
                     'abstract' => 'A novel hybrid cryptographic approach combining the Playfair cipher with a modified Blum-Blum-Shub (BBS) generator for enhanced keystream security. Implemented and evaluated using performance metrics, demonstrating improved resistance to cryptanalysis compared to traditional Playfair implementations.',
-                    'display_order' => 1,
+                    'url' => 'https://scholar.google.com/citations?view_op=view_citation&hl=en&user=0A84GRQAAAAJ&citation_for_view=0A84GRQAAAAJ:d1gkVwhDpl0C',
+                   'display_order' => 1,
                 ],
             ],
         ];
