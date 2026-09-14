@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         git unzip zip libzip-dev \
         libpng-dev libjpeg62-turbo-dev libfreetype6-dev \
         libicu-dev libonig-dev libxml2-dev libcurl4-openssl-dev \
+        libsqlite3-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j"$(nproc)" \
         pdo pdo_sqlite mbstring exif intl zip opcache gd \
