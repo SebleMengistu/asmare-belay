@@ -6,7 +6,8 @@ services:
     name: tefera-portfolio-api
     runtime: docker
     plan: free
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
     autoDeploy: true
     healthCheckPath: /api/v1/profile
     envVars:
