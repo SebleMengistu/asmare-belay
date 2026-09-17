@@ -17,7 +17,7 @@ services:
       - key: APP_URL
         sync: false
       - key: FRONTEND_URL
-        value: https://tefe-alas-portal.vercel.app
+        value: https://tefera-portfolio-node.vercel.app
       - key: DB_PATH
         value: ./data/portfolio.sqlite
       - key: ANALYTICS_ENABLED
