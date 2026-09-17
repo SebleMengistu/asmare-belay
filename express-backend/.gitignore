@@ -1,0 +1,9 @@
+node_modules/
+.env
+*.log
+
+# Runtime artifacts (WAL/SHM). The .sqlite file itself is committed so Render
+# boots with the imported portfolio data on its ephemeral disk.
+data/*.sqlite-wal
+data/*.sqlite-shm
+storage/tmp/

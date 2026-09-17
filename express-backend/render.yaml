@@ -1,0 +1,24 @@
+# TEFERA Portfolio — Render blueprint (Express API, free tier)
+# Import this repo "New + > Blueprint". Render builds the Node service from
+# express-backend/ and boots it with the committed SQLite data + media.
+services:
+  - type: web
+    name: tefera-portfolio-api
+    runtime: node
+    plan: free
+    rootDir: express-backend
+    buildCommand: npm install --omit=dev
+    startCommand: node src/server.js
+    autoDeploy: true
+    healthCheckPath: /up
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_URL
+        sync: false
+      - key: FRONTEND_URL
+        value: https://tefe-alas-portal.vercel.app
+      - key: DB_PATH
+        value: ./data/portfolio.sqlite
+      - key: ANALYTICS_ENABLED
+        value: "true"
