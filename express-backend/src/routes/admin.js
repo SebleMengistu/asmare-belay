@@ -568,6 +568,13 @@ module.exports = function createAdminRouter(db) {
         if (cfg.profileScoped && hasColumn(cfg.table, 'profile_id')) {
           columns.profile_id = firstProfileId()
         }
+        if (hasColumn(cfg.table, 'slug')) {
+          columns.slug = uniqueSlug(
+            db,
+            cfg.table,
+            values.slug && String(values.slug).trim() !== '' ? values.slug : values.title
+          )
+        }
         const id = storeRow(cfg.table, columns)
         cache.flush()
         res.created(cfg.serialize(findOrFail(cfg.table, id)), `${cfg.singular} created.`)
@@ -587,6 +594,11 @@ module.exports = function createAdminRouter(db) {
       if (!ok) throw new ValidationError(errors)
 
       const columns = buildColumns(values, cfg.columns)
+      if (hasColumn(cfg.table, 'slug')) {
+        const base =
+          values.slug && String(values.slug).trim() !== '' ? values.slug : values.title || existing.title
+        columns.slug = uniqueSlug(db, cfg.table, base, existing.id)
+      }
       updateRow(cfg.table, existing.id, columns)
       cache.flush()
       res.ok(cfg.serialize(findOrFail(cfg.table, existing.id)), `${cfg.singular} updated.`)
