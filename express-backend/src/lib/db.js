@@ -1,370 +1,175 @@
 'use strict'
 
-const fs = require('fs')
-const path = require('path')
-const { DatabaseSync } = require('node:sqlite')
+/* eslint-disable prefer-promise-reject-errors */
+
+const { Pool } = require('pg')
 const config = require('../config')
 
-const SCHEMA = `
-CREATE TABLE IF NOT EXISTS users (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
-  email TEXT NOT NULL UNIQUE,
-  email_verified_at TEXT,
-  password TEXT NOT NULL,
-  remember_token TEXT,
-  created_at TEXT,
-  updated_at TEXT
-);
+let pool = null
 
-CREATE TABLE IF NOT EXISTS roles (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
-  guard_name TEXT NOT NULL,
-  created_at TEXT,
-  updated_at TEXT,
-  UNIQUE (name, guard_name)
-);
+/**
+ * Convert SQLite-style `?` placeholders to Postgres `$1, $2, …`, while
+ * ignoring `?` characters that live inside string literals.
+ */
+function toPgPlaceholders(sql) {
+  let out = ''
+  let index = 0
+  let inSingle = false
+  let inDouble = false
+  for (let i = 0; i < sql.length; i += 1) {
+    const ch = sql[i]
+    if (ch === "'" && !inDouble) {
+      inSingle = !inSingle
+      out += ch
+      continue
+    }
+    if (ch === '"' && !inSingle) {
+      inDouble = !inDouble
+      out += ch
+      continue
+    }
+    if (ch === '?' && !inSingle && !inDouble) {
+      index += 1
+      out += `$${index}`
+      continue
+    }
+    out += ch
+  }
+  return { sql: out, count: index }
+}
 
-CREATE TABLE IF NOT EXISTS permissions (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
-  guard_name TEXT NOT NULL,
-  created_at TEXT,
-  updated_at TEXT,
-  UNIQUE (name, guard_name)
-);
-
-CREATE TABLE IF NOT EXISTS model_has_roles (
-  role_id INTEGER NOT NULL,
-  model_type TEXT NOT NULL,
-  model_id INTEGER NOT NULL,
-  PRIMARY KEY (role_id, model_type, model_id)
-);
-
-CREATE TABLE IF NOT EXISTS model_has_permissions (
-  permission_id INTEGER NOT NULL,
-  model_type TEXT NOT NULL,
-  model_id INTEGER NOT NULL,
-  PRIMARY KEY (permission_id, model_type, model_id)
-);
-
-CREATE TABLE IF NOT EXISTS role_has_permissions (
-  permission_id INTEGER NOT NULL,
-  role_id INTEGER NOT NULL,
-  PRIMARY KEY (permission_id, role_id)
-);
-
-CREATE TABLE IF NOT EXISTS profiles (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER NOT NULL,
-  first_name TEXT,
-  last_name TEXT,
-  display_name TEXT,
-  headline TEXT,
-  tagline TEXT,
-  bio TEXT,
-  location TEXT,
-  website TEXT,
-  email_public TEXT,
-  phone TEXT,
-  github TEXT,
-  linkedin TEXT,
-  twitter TEXT,
-  whatsapp TEXT,
-  roles TEXT,
-  available_for_work INTEGER NOT NULL DEFAULT 1,
-  meta TEXT,
-  created_at TEXT,
-  updated_at TEXT
-);
-
-CREATE TABLE IF NOT EXISTS skills (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  profile_id INTEGER,
-  name TEXT NOT NULL,
-  category TEXT NOT NULL DEFAULT 'general',
-  level INTEGER NOT NULL DEFAULT 0,
-  icon TEXT,
-  color TEXT,
-  display_order INTEGER NOT NULL DEFAULT 0,
-  is_active INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT,
-  updated_at TEXT
-);
-
-CREATE TABLE IF NOT EXISTS experiences (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  profile_id INTEGER,
-  title TEXT NOT NULL,
-  company TEXT NOT NULL,
-  company_url TEXT,
-  location TEXT,
-  start_date TEXT,
-  end_date TEXT,
-  current INTEGER NOT NULL DEFAULT 0,
-  description TEXT,
-  highlights TEXT,
-  display_order INTEGER NOT NULL DEFAULT 0,
-  is_active INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT,
-  updated_at TEXT
-);
-
-CREATE TABLE IF NOT EXISTS educations (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  profile_id INTEGER,
-  degree TEXT NOT NULL,
-  field_of_study TEXT,
-  institution TEXT NOT NULL,
-  location TEXT,
-  start_date TEXT,
-  end_date TEXT,
-  grade TEXT,
-  description TEXT,
-  display_order INTEGER NOT NULL DEFAULT 0,
-  is_active INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT,
-  updated_at TEXT
-);
-
-CREATE TABLE IF NOT EXISTS certifications (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  profile_id INTEGER,
-  name TEXT NOT NULL,
-  issuer TEXT NOT NULL,
-  credential_url TEXT,
-  credential_id TEXT,
-  issued_date TEXT,
-  expiry_date TEXT,
-  skills TEXT,
-  image TEXT,
-  display_order INTEGER NOT NULL DEFAULT 0,
-  is_active INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT,
-  updated_at TEXT
-);
-
-CREATE TABLE IF NOT EXISTS projects (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  profile_id INTEGER,
-  title TEXT NOT NULL,
-  slug TEXT NOT NULL UNIQUE,
-  summary TEXT,
-  description TEXT,
-  category TEXT,
-  repo_url TEXT,
-  demo_url TEXT,
-  tech_stack TEXT,
-  featured INTEGER NOT NULL DEFAULT 0,
-  start_date TEXT,
-  end_date TEXT,
-  display_order INTEGER NOT NULL DEFAULT 0,
-  is_active INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT,
-  updated_at TEXT
-);
-
-CREATE TABLE IF NOT EXISTS project_skill (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  project_id INTEGER NOT NULL,
-  skill_id INTEGER NOT NULL,
-  UNIQUE (project_id, skill_id)
-);
-
-CREATE TABLE IF NOT EXISTS publications (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  profile_id INTEGER,
-  title TEXT NOT NULL,
-  slug TEXT NOT NULL UNIQUE,
-  authors TEXT,
-  venue TEXT,
-  type TEXT NOT NULL DEFAULT 'journal',
-  year TEXT,
-  url TEXT,
-  doi TEXT,
-  abstract TEXT,
-  display_order INTEGER NOT NULL DEFAULT 0,
-  is_active INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT,
-  updated_at TEXT
-);
-
-CREATE TABLE IF NOT EXISTS services (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  profile_id INTEGER,
-  title TEXT NOT NULL,
-  slug TEXT NOT NULL UNIQUE,
-  summary TEXT,
-  description TEXT,
-  icon TEXT,
-  price_from REAL,
-  currency TEXT NOT NULL DEFAULT 'USD',
-  delivery TEXT,
-  features TEXT,
-  cta_label TEXT,
-  display_order INTEGER NOT NULL DEFAULT 0,
-  is_active INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT,
-  updated_at TEXT
-);
-
-CREATE TABLE IF NOT EXISTS testimonials (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  profile_id INTEGER,
-  name TEXT NOT NULL,
-  role TEXT,
-  company TEXT,
-  quote TEXT NOT NULL,
-  rating INTEGER NOT NULL DEFAULT 5,
-  display_order INTEGER NOT NULL DEFAULT 0,
-  is_active INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT,
-  updated_at TEXT
-);
-
-CREATE TABLE IF NOT EXISTS posts (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  profile_id INTEGER,
-  title TEXT NOT NULL,
-  slug TEXT NOT NULL UNIQUE,
-  excerpt TEXT,
-  body TEXT NOT NULL,
-  meta_title TEXT,
-  meta_description TEXT,
-  status TEXT NOT NULL DEFAULT 'draft',
-  published_at TEXT,
-  created_at TEXT,
-  updated_at TEXT
-);
-
-CREATE TABLE IF NOT EXISTS post_tags (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
-  slug TEXT NOT NULL UNIQUE,
-  created_at TEXT,
-  updated_at TEXT
-);
-
-CREATE TABLE IF NOT EXISTS post_tag (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  post_id INTEGER NOT NULL,
-  post_tag_id INTEGER NOT NULL,
-  UNIQUE (post_id, post_tag_id)
-);
-
-CREATE TABLE IF NOT EXISTS contact_messages (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
-  email TEXT NOT NULL,
-  phone TEXT,
-  subject TEXT NOT NULL,
-  message TEXT NOT NULL,
-  ip TEXT,
-  device TEXT,
-  read_at TEXT,
-  created_at TEXT,
-  updated_at TEXT
-);
-
-CREATE TABLE IF NOT EXISTS settings (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  key TEXT NOT NULL UNIQUE,
-  value TEXT,
-  "group" TEXT NOT NULL DEFAULT 'general',
-  is_public INTEGER NOT NULL DEFAULT 0,
-  created_at TEXT,
-  updated_at TEXT
-);
-
-CREATE TABLE IF NOT EXISTS analytics_events (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  event TEXT NOT NULL,
-  path TEXT,
-  referrer TEXT,
-  user_agent TEXT,
-  ip TEXT,
-  meta TEXT,
-  occurred_at TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS feedback (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT,
-  email TEXT,
-  category TEXT,
-  rating INTEGER,
-  message TEXT NOT NULL,
-  ip TEXT,
-  device TEXT,
-  read_at TEXT,
-  created_at TEXT,
-  updated_at TEXT
-);
-
-CREATE TABLE IF NOT EXISTS media (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  model_type TEXT NOT NULL,
-  model_id INTEGER NOT NULL,
-  uuid TEXT,
-  collection_name TEXT NOT NULL,
-  name TEXT NOT NULL,
-  file_name TEXT NOT NULL,
-  mime_type TEXT,
-  disk TEXT NOT NULL DEFAULT 'public',
-  conversions_disk TEXT,
-  size INTEGER NOT NULL DEFAULT 0,
-  manipulations TEXT,
-  custom_properties TEXT,
-  generated_conversions TEXT,
-  responsive_images TEXT,
-  order_column INTEGER,
-  created_at TEXT,
-  updated_at TEXT
-);
-
-CREATE TABLE IF NOT EXISTS media_libraries (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  created_at TEXT,
-  updated_at TEXT
-);
-
-CREATE TABLE IF NOT EXISTS personal_access_tokens (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  tokenable_type TEXT NOT NULL,
-  tokenable_id INTEGER NOT NULL,
-  name TEXT NOT NULL,
-  token TEXT NOT NULL UNIQUE,
-  abilities TEXT,
-  last_used_at TEXT,
-  expires_at TEXT,
-  created_at TEXT,
-  updated_at TEXT
-);
-
-CREATE INDEX IF NOT EXISTS skills_category_active_idx ON skills (category, is_active);
-CREATE INDEX IF NOT EXISTS analytics_event_idx ON analytics_events (event);
-CREATE INDEX IF NOT EXISTS analytics_occurred_idx ON analytics_events (occurred_at);
-`
-
-let db = null
+/**
+ * Column-name cache mirroring the old `PRAGMA table_info` introspection.
+ */
+const columnCache = new Map()
 
 function open() {
-  fs.mkdirSync(path.dirname(config.dbPath), { recursive: true })
-  db = new DatabaseSync(config.dbPath)
-  db.exec('PRAGMA journal_mode = WAL;')
-  db.exec('PRAGMA foreign_keys = ON;')
-  db.exec(SCHEMA)
-  return db
+  const ssl = config.dbSsl
+  pool = new Pool({
+    connectionString: config.databaseUrl,
+    ssl: ssl ? { rejectUnauthorized: false } : undefined,
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 15000,
+  })
+  return pool
 }
 
-function getDb() {
-  if (!db) open()
-  return db
+function getPool() {
+  if (!pool) open()
+  return pool
 }
 
-function lastInsertId(connection = db) {
-  return Number(connection.prepare('SELECT last_insert_rowid() AS id').get().id)
+function normalizeParams(params) {
+  if (params === undefined || params === null) return []
+  return Array.isArray(params) ? params : [params]
 }
 
-module.exports = { getDb, open, lastInsertId, SCHEMA }
+/** Convert `?` placeholders and clip params to the converted count. */
+function prepare(sql, params) {
+  const { sql: text, count } = toPgPlaceholders(sql)
+  return { text, values: normalizeParams(params).slice(0, count) }
+}
+
+async function execute(text, values) {
+  const res = await getPool().query(text, values)
+  return res
+}
+
+async function all(sql, ...params) {
+  const { text, values } = prepare(sql, params)
+  const res = await execute(text, values)
+  return res.rows
+}
+
+async function get(sql, ...params) {
+  const { text, values } = prepare(sql, params)
+  const res = await execute(text, values)
+  return res.rows.length > 0 ? res.rows[0] : null
+}
+
+/**
+ * Write query. For INSERTs we auto-append `RETURNING id` so callers can pick
+ * up the generated primary key without a separate round-trip. Returns a
+ * Laravel-style result: `{ id, rowCount, changes }`.
+ */
+async function run(sql, ...params) {
+  const { text, values } = prepare(sql, params)
+  const isInsert = /^\s*insert\s+into/i.test(text)
+  const hasReturning = /\breturning\b/i.test(text)
+  let queryText = text
+  if (isInsert && !hasReturning) {
+    // Only request the id back when the target table actually has one
+    // (pivot tables like model_has_roles use composite keys and no `id`).
+    const match = /^\s*insert\s+into\s+([^\s(]+)/i.exec(text)
+    const table = match ? match[1].replace(/^"|"$/g, '') : null
+    const cols = table ? await tableColumns(table) : []
+    if (cols.includes('id')) queryText = `${text} RETURNING id`
+  }
+  const res = await execute(queryText, values)
+  const row = res.rows && res.rows.length > 0 ? res.rows[0] : null
+  return { id: row && row.id !== undefined ? Number(row.id) : null, rowCount: res.rowCount, changes: res.rowCount }
+}
+
+/**
+ * Execute a DDL/multi-statement script (no parameters). The schema has no
+ * `?` placeholders, so no conversion happens here.
+ */
+async function exec(sql) {
+  const res = await getPool().query(sql)
+  return res.command
+}
+
+async function tableColumns(table) {
+  const cached = columnCache.get(table)
+  if (cached) return cached
+  const rows = await all(
+    `SELECT column_name FROM information_schema.columns
+     WHERE table_schema = current_schema() AND table_name = ?`,
+    table
+  )
+  const cols = rows.map((row) => row.column_name)
+  columnCache.set(table, cols)
+  return cols
+}
+
+async function hasColumn(table, column) {
+  const cols = await tableColumns(table)
+  return cols.includes(column)
+}
+
+async function close() {
+  if (pool) {
+    await pool.end()
+    pool = null
+  }
+}
+
+/** Seed check helper (mirrors old `SELECT COUNT(*) AS c FROM users`). */
+async function count(table) {
+  const row = await get(`SELECT COUNT(*)::int AS c FROM ${table}`)
+  return row ? Number(row.c) : 0
+}
+
+const db = {
+  all,
+  get,
+  run,
+  exec,
+  tableColumns,
+  hasColumn,
+  count,
+  close,
+}
+
+module.exports = {
+  db,
+  getDb: () => db,
+  open,
+  close,
+  toPgPlaceholders,
+  tableColumns,
+  hasColumn,
+  count,
+  SCHEMA: require('./schema').SCHEMA,
+}

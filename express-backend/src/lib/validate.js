@@ -39,7 +39,7 @@ function dateOf(value) {
 }
 
 function createValidator(db) {
-  return function validate(data, rules) {
+  return async function validate(data, rules) {
     const errors = {}
     const values = {}
     const source = isPlainObject(data) ? data : {}
@@ -217,10 +217,8 @@ function createValidator(db) {
 
           case 'exists': {
             const [table, column = 'id'] = String(param).split(',')
-            const row = db
-              .prepare(`SELECT COUNT(*) AS c FROM ${table} WHERE ${column} = ?`)
-              .get(value)
-            if (!row || row.c < 1) {
+            const row = await db.get(`SELECT COUNT(*)::int AS c FROM ${table} WHERE ${column} = ?`, value)
+            if (!row || Number(row.c) < 1) {
               fieldErrors.push(`The selected ${attr} is invalid.`)
             }
             break
@@ -228,10 +226,12 @@ function createValidator(db) {
 
           case 'unique': {
             const [table, column = 'id', ignoreId = '0'] = String(param).split(',')
-            const row = db
-              .prepare(`SELECT COUNT(*) AS c FROM ${table} WHERE ${column} = ? AND id != ?`)
-              .get(value, Number(ignoreId) || 0)
-            if (row && row.c > 0) {
+            const row = await db.get(
+              `SELECT COUNT(*)::int AS c FROM ${table} WHERE ${column} = ? AND id != ?`,
+              value,
+              Number(ignoreId) || 0
+            )
+            if (row && Number(row.c) > 0) {
               fieldErrors.push(`The ${attr} has already been taken.`)
             }
             break

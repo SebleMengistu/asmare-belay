@@ -89,14 +89,16 @@ function slugify(value) {
 }
 
 /** Laravel HasSlug: ensure uniqueness against an existing table + row. */
-function uniqueSlug(db, table, base, ignoreId = 0) {
+async function uniqueSlug(db, table, base, ignoreId = 0) {
   const root = slugify(base) || 'untitled'
-  const exists = db.prepare(`SELECT COUNT(*) AS c FROM ${table} WHERE slug = ? AND id != ?`)
-  const take = (candidate) => exists.get(candidate, ignoreId).c > 0
-  if (!take(root)) return root
+  const taken = async (candidate) => {
+    const row = await db.get(`SELECT COUNT(*)::int AS c FROM ${table} WHERE slug = ? AND id != ?`, candidate, ignoreId)
+    return Number(row.c) > 0
+  }
+  if (!(await taken(root))) return root
   let i = 2
   let candidate = `${root.slice(0, 248)}-${i}`
-  while (take(candidate)) {
+  while (await taken(candidate)) {
     i += 1
     candidate = `${root.slice(0, 248)}-${i}`
   }

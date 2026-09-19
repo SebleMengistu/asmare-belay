@@ -128,17 +128,16 @@ function serializeTag(row) {
   }
 }
 
-function tagsForPost(db, postId) {
-  return db
-    .prepare(
-      `SELECT t.* FROM post_tag pt JOIN post_tags t ON t.id = pt.post_tag_id
-       WHERE pt.post_id = ? ORDER BY t.id`
-    )
-    .all(postId)
+async function tagsForPost(db, postId) {
+  return db.all(
+    `SELECT t.* FROM post_tag pt JOIN post_tags t ON t.id = pt.post_tag_id
+     WHERE pt.post_id = ? ORDER BY t.id`,
+    postId
+  )
 }
 
-function serializePost(db, row, req) {
-  const cover = firstMedia(db, 'Post', row.id, 'cover')
+async function serializePost(db, row, req) {
+  const cover = await firstMedia(db, 'Post', row.id, 'cover')
   return {
     id: row.id,
     title: row.title,
@@ -147,30 +146,30 @@ function serializePost(db, row, req) {
     body: row.body,
     status: row.status,
     published_at: isoOut(row.published_at),
-    tags: tagsForPost(db, row.id).map(serializeTag),
+    tags: (await tagsForPost(db, row.id)).map(serializeTag),
     cover: mediaVariantUrl(cover, req, 'card'),
     meta_title: row.meta_title,
     meta_description: row.meta_description,
   }
 }
 
-function skillsForProject(db, projectId) {
-  return db
-    .prepare(
-      `SELECT s.* FROM project_skill ps JOIN skills s ON s.id = ps.skill_id
-       WHERE ps.project_id = ? ORDER BY s.id`
-    )
-    .all(projectId)
-    .map(serializeSkill)
+async function skillsForProject(db, projectId) {
+  const rows = await db.all(
+    `SELECT s.* FROM project_skill ps JOIN skills s ON s.id = ps.skill_id
+     WHERE ps.project_id = ? ORDER BY s.id`,
+    projectId
+  )
+  return rows.map(serializeSkill)
 }
 
-function serializeProject(db, row, req) {
-  const screenshots = mediaRows(db, 'Project', row.id, 'screenshots').map((media) => ({
-      id: media.id,
-      url: mediaUrl(media, req),
-      thumb: mediaVariantUrl(media, req, 'thumb'),
-      card: mediaVariantUrl(media, req, 'card'),
-      hero: mediaVariantUrl(media, req, 'hero'),
+async function serializeProject(db, row, req) {
+  const media = await mediaRows(db, 'Project', row.id, 'screenshots')
+  const screenshots = media.map((item) => ({
+      id: item.id,
+      url: mediaUrl(item, req),
+      thumb: mediaVariantUrl(item, req, 'thumb'),
+      card: mediaVariantUrl(item, req, 'card'),
+      hero: mediaVariantUrl(item, req, 'hero'),
     }))
 
   return {
@@ -188,15 +187,15 @@ function serializeProject(db, row, req) {
     is_active: bool(row.is_active),
     start_date: dateOut(row.start_date),
     end_date: dateOut(row.end_date),
-    skills: skillsForProject(db, row.id),
+    skills: await skillsForProject(db, row.id),
     screenshots,
   }
 }
 
-function serializeProfile(db, row, req) {
-  const avatar = firstMedia(db, 'Profile', row.id, 'avatar')
-  const cover = firstMedia(db, 'Profile', row.id, 'cover')
-  const resume = firstMedia(db, 'Profile', row.id, 'resume')
+async function serializeProfile(db, row, req) {
+  const avatar = await firstMedia(db, 'Profile', row.id, 'avatar')
+  const cover = await firstMedia(db, 'Profile', row.id, 'cover')
+  const resume = await firstMedia(db, 'Profile', row.id, 'resume')
   return {
     id: row.id,
     first_name: row.first_name,

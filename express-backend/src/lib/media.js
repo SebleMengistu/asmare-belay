@@ -5,7 +5,6 @@ const path = require('path')
 const crypto = require('crypto')
 const config = require('../config')
 const { jsonParse, isoNow } = require('./format')
-const { lastInsertId } = require('./db')
 
 let sharp = null
 try {
@@ -88,15 +87,13 @@ function modelBasename(modelType) {
   return String(modelType || '').split('\\').pop()
 }
 
-function insertMedia(db, media) {
+async function insertMedia(db, media) {
   const now = isoNow()
-  const stmt = db.prepare(`
-    INSERT INTO media
-      (model_type, model_id, uuid, collection_name, name, file_name, mime_type, disk,
-       size, custom_properties, generated_conversions, order_column, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, 'public', ?, ?, ?, ?, ?, ?)
-  `)
-  stmt.run(
+  const result = await db.run(
+    `INSERT INTO media
+       (model_type, model_id, uuid, collection_name, name, file_name, mime_type, disk,
+        size, custom_properties, generated_conversions, order_column, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 'public', ?, ?, ?, ?, ?, ?)`,
     modelBasename(media.model_type),
     media.model_id,
     crypto.randomUUID(),
@@ -105,13 +102,13 @@ function insertMedia(db, media) {
     media.file_name,
     media.mime_type || null,
     media.size || 0,
-    '[]',
+    JSON.stringify([]),
     media.generated_conversions ? JSON.stringify(media.generated_conversions) : null,
     media.order_column ?? null,
     now,
     now
   )
-  return db.prepare('SELECT * FROM media WHERE id = ?').get(lastInsertId(db))
+  return db.get('SELECT * FROM media WHERE id = ?', result.id)
 }
 
 /**
@@ -121,7 +118,7 @@ function insertMedia(db, media) {
 async function storeUpload(db, { model_type, model_id, collection_name, file, name }) {
   ensureDirs()
   const file_name = safeFileName(file.originalname, file.mimetype)
-  const media = insertMedia(db, {
+  const media = await insertMedia(db, {
     model_type,
     model_id,
     collection_name,
@@ -161,51 +158,49 @@ async function storeUpload(db, { model_type, model_id, collection_name, file, na
       }
     }
     if (Object.keys(generated).length > 0) {
-      db.prepare('UPDATE media SET generated_conversions = ? WHERE id = ?').run(
-        JSON.stringify(generated),
-        media.id
-      )
+      await db.run('UPDATE media SET generated_conversions = ? WHERE id = ?', JSON.stringify(generated), media.id)
     }
   }
 
-  return db.prepare('SELECT * FROM media WHERE id = ?').get(media.id)
+  return db.get('SELECT * FROM media WHERE id = ?', media.id)
 }
 
-function mediaRows(db, modelType, modelId, collection = null) {
+async function mediaRows(db, modelType, modelId, collection = null) {
   if (collection) {
-    return db
-      .prepare(
-        `SELECT * FROM media WHERE model_type = ? AND model_id = ? AND collection_name = ?
-         ORDER BY order_column IS NULL, order_column, id`
-      )
-      .all(modelBasename(modelType), modelId, collection)
-  }
-  return db
-    .prepare(
-      `SELECT * FROM media WHERE model_type = ? AND model_id = ?
-       ORDER BY order_column IS NULL, order_column, id`
+    return db.all(
+      `SELECT * FROM media WHERE model_type = ? AND model_id = ? AND collection_name = ?
+       ORDER BY order_column IS NULL, order_column, id`,
+      modelBasename(modelType),
+      modelId,
+      collection
     )
-    .all(modelBasename(modelType), modelId)
+  }
+  return db.all(
+    `SELECT * FROM media WHERE model_type = ? AND model_id = ?
+     ORDER BY order_column IS NULL, order_column, id`,
+    modelBasename(modelType),
+    modelId
+  )
 }
 
-function firstMedia(db, modelType, modelId, collection) {
-  const rows = mediaRows(db, modelType, modelId, collection)
+async function firstMedia(db, modelType, modelId, collection) {
+  const rows = await mediaRows(db, modelType, modelId, collection)
   return rows.length > 0 ? rows[0] : null
 }
 
-function clearMediaCollection(db, modelType, modelId, collection) {
-  const rows = mediaRows(db, modelType, modelId, collection)
+async function clearMediaCollection(db, modelType, modelId, collection) {
+  const rows = await mediaRows(db, modelType, modelId, collection)
   for (const row of rows) removeMediaFiles(row.id)
-  db.prepare('DELETE FROM media WHERE model_type = ? AND model_id = ? AND collection_name = ?').run(
+  await db.run('DELETE FROM media WHERE model_type = ? AND model_id = ? AND collection_name = ?',
     modelBasename(modelType),
     modelId,
     collection
   )
 }
 
-function deleteMediaRow(db, row) {
+async function deleteMediaRow(db, row) {
   removeMediaFiles(row.id)
-  db.prepare('DELETE FROM media WHERE id = ?').run(row.id)
+  await db.run('DELETE FROM media WHERE id = ?', row.id)
 }
 
 function originFor(req) {

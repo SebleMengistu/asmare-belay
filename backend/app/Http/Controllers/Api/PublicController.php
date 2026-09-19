@@ -69,9 +69,18 @@ class PublicController extends Controller
 
         return $this->ok([
             'profile' => new ProfileResource($profile),
-            'featured_projects' => PortfolioCache::remember('featured_projects', fn () => ProjectResource::collection(
-                $profile->projects()->with('skills')->where('featured', true)->where('is_active', true)->get()
-            )->resolve(), 'index'),
+            'featured_projects' => PortfolioCache::remember('featured_projects', function () use ($profile) {
+                $featured = $profile->projects()->with('skills')->where('featured', true)->where('is_active', true)->get();
+
+                if ($featured->isNotEmpty()) {
+                    return ProjectResource::collection($featured)->resolve();
+                }
+
+                return ProjectResource::collection(
+                    $profile->projects()->with('skills')->where('is_active', true)
+                        ->orderBy('display_order')->latest('created_at')->limit(6)->get()
+                )->resolve();
+            }, 'index'),
             'recent_posts' => PortfolioCache::remember('recent_posts', fn () => PostResource::collection(
                 Post::published()->with('tags')->latest('published_at')->limit(3)->get()
             )->resolve(), 'index'),

@@ -2,17 +2,12 @@
 
 const express = require('express')
 const bcrypt = require('bcryptjs')
+const crypto = require('crypto')
 const cache = require('../lib/cache')
 const config = require('../config')
 const { wrap, ValidationError, NotFoundError, ApiError } = require('../lib/respond')
 const { createValidator } = require('../lib/validate')
-const {
-  toDateString,
-  toIso,
-  sqliteToIso,
-  isoNow,
-  diffInYears,
-} = require('../lib/format')
+const { toDateString, toIso, sqliteToIso, isoNow, diffInYears } = require('../lib/format')
 const {
   serializeSkill,
   serializeExperience,
@@ -46,85 +41,92 @@ module.exports = function createPublicRouter(db) {
   const validate = createValidator(db)
   const auth = requireAuth(db)
 
-  const firstProfile = () =>
-    db.prepare('SELECT * FROM profiles ORDER BY id LIMIT 1').get() || null
+  const firstProfile = () => db.get('SELECT * FROM profiles ORDER BY id LIMIT 1')
 
   /* ------------------------------------------------------------------ home */
 
   router.get(
     '/',
-    wrap((req, res) => {
-      const profile = firstProfile()
+    wrap(async (req, res) => {
+      const profile = await firstProfile()
       if (!profile) throw new NotFoundError()
 
-      const starts = db
-        .prepare('SELECT start_date FROM experiences WHERE profile_id = ? AND is_active = 1 AND start_date IS NOT NULL')
-        .all(profile.id)
-        .map((row) => row.start_date)
-        .filter(Boolean)
+      const starts = await db
+        .all('SELECT start_date FROM experiences WHERE profile_id = ? AND is_active = TRUE AND start_date IS NOT NULL', profile.id)
       const earliest = starts.length ? starts.reduce((a, b) => (a < b ? a : b)) : null
       const years = earliest ? diffInYears(earliest) : null
 
-      const meta = Object.assign({}, profile.meta ? JSON.parse(profile.meta) : {}, {
-        projects_completed: db
-          .prepare('SELECT COUNT(*) AS c FROM projects WHERE profile_id = ? AND is_active = 1')
-          .get(profile.id).c,
-        research_publications: db
-          .prepare('SELECT COUNT(*) AS c FROM publications WHERE profile_id = ? AND is_active = 1')
-          .get(profile.id).c,
-        technologies: db
-          .prepare('SELECT COUNT(*) AS c FROM skills WHERE profile_id = ? AND is_active = 1')
-          .get(profile.id).c,
-        experience_years: years ?? (profile.meta ? JSON.parse(profile.meta).experience_years : 0) ?? 0,
+      const meta = Object.assign({}, profile.meta ? profile.meta : {}, {
+        projects_completed: await db
+          .get('SELECT COUNT(*)::int AS c FROM projects WHERE profile_id = ? AND is_active = TRUE', profile.id)
+          .then((row) => row.c),
+        research_publications: await db
+          .get('SELECT COUNT(*)::int AS c FROM publications WHERE profile_id = ? AND is_active = TRUE', profile.id)
+          .then((row) => row.c),
+        technologies: await db
+          .get('SELECT COUNT(*)::int AS c FROM skills WHERE profile_id = ? AND is_active = TRUE', profile.id)
+          .then((row) => row.c),
+        experience_years: years ?? (profile.meta ? profile.meta.experience_years : 0) ?? 0,
       })
-      profile.meta = JSON.stringify(meta)
+      profile.meta = meta
 
-      const featured = cache.remember(
+      const featured = await cache.remember(
         'featured_projects',
-        () =>
-          db
-            .prepare(
-              'SELECT * FROM projects WHERE profile_id = ? AND featured = 1 AND is_active = 1 ORDER BY display_order, created_at DESC'
-            )
-            .all(profile.id)
-            .map((row) => serializeProject(db, row, req)),
+        async () => {
+          const featuredRows = await db.all(
+            'SELECT * FROM projects WHERE profile_id = ? AND featured = TRUE AND is_active = TRUE ORDER BY display_order, created_at DESC',
+            profile.id
+          )
+          const rows =
+            featuredRows.length > 0
+              ? featuredRows
+              : await db.all(
+                  'SELECT * FROM projects WHERE profile_id = ? AND is_active = TRUE ORDER BY display_order, created_at DESC LIMIT 6',
+                  profile.id
+                )
+          return Promise.all(rows.map((row) => serializeProject(db, row, req)))
+        },
         'index'
       )
 
-      const recentPosts = cache.remember(
+      const recentPosts = await cache.remember(
         'recent_posts',
-        () =>
-          db
-            .prepare(
-              "SELECT * FROM posts WHERE status = 'published' AND published_at IS NOT NULL AND published_at <= ? ORDER BY published_at DESC LIMIT 3"
-            )
-            .all(isoNow())
-            .map((row) => serializePost(db, row, req)),
+        async () => {
+          const rows = await db.all(
+            "SELECT * FROM posts WHERE status = 'published' AND published_at IS NOT NULL AND published_at <= ? ORDER BY published_at DESC LIMIT 3",
+            isoNow()
+          )
+          return Promise.all(rows.map((row) => serializePost(db, row, req)))
+        },
         'index'
       )
 
-      const testimonials = cache.remember(
+      const testimonials = await cache.remember(
         'testimonials',
-        () =>
-          db
-            .prepare('SELECT * FROM testimonials WHERE profile_id = ? AND is_active = 1 ORDER BY display_order, id')
-            .all(profile.id)
-            .map(serializeTestimonial),
+        async () => {
+          const rows = await db.all(
+            'SELECT * FROM testimonials WHERE profile_id = ? AND is_active = TRUE ORDER BY display_order, id',
+            profile.id
+          )
+          return rows.map(serializeTestimonial)
+        },
         'index'
       )
 
-      const services = cache.remember(
+      const services = await cache.remember(
         'services',
-        () =>
-          db
-            .prepare('SELECT * FROM services WHERE profile_id = ? AND is_active = 1 ORDER BY display_order, id')
-            .all(profile.id)
-            .map(serializeService),
+        async () => {
+          const rows = await db.all(
+            'SELECT * FROM services WHERE profile_id = ? AND is_active = TRUE ORDER BY display_order, id',
+            profile.id
+          )
+          return rows.map(serializeService)
+        },
         'index'
       )
 
       res.ok({
-        profile: serializeProfile(db, profile, req),
+        profile: await serializeProfile(db, profile, req),
         featured_projects: featured,
         recent_posts: recentPosts,
         testimonials,
@@ -137,20 +139,20 @@ module.exports = function createPublicRouter(db) {
 
   router.get(
     '/profile',
-    wrap((req, res) => {
-      const profile = cache.remember('profile', firstProfile)
+    wrap(async (req, res) => {
+      const profile = await cache.remember('profile', firstProfile)
       if (!profile) throw new NotFoundError()
-      res.ok(serializeProfile(db, profile, req))
+      res.ok(await serializeProfile(db, profile, req))
     })
   )
 
   router.get(
     '/profile/:id',
-    wrap((req, res, next) => {
+    wrap(async (req, res, next) => {
       if (!/^\d+$/.test(req.params.id)) return next()
-      const profile = db.prepare('SELECT * FROM profiles WHERE id = ?').get(Number(req.params.id))
+      const profile = await db.get('SELECT * FROM profiles WHERE id = ?', Number(req.params.id))
       if (!profile) throw new NotFoundError()
-      res.ok(serializeProfile(db, profile, req))
+      res.ok(await serializeProfile(db, profile, req))
     })
   )
 
@@ -158,26 +160,18 @@ module.exports = function createPublicRouter(db) {
 
   router.get(
     '/skills',
-    wrap((req, res) => {
-      const payload = cache.remember('skills', () => {
-        const profile = firstProfile()
+    wrap(async (req, res) => {
+      const payload = await cache.remember('skills', async () => {
+        const profile = await firstProfile()
         if (!profile) throw new NotFoundError()
         return {
-          skills: db
-            .prepare('SELECT * FROM skills WHERE profile_id = ? AND is_active = 1 ORDER BY id')
-            .all(profile.id)
+          skills: (await db.all('SELECT * FROM skills WHERE profile_id = ? AND is_active = TRUE ORDER BY id', profile.id))
             .map(serializeSkill),
-          experiences: db
-            .prepare('SELECT * FROM experiences WHERE profile_id = ? AND is_active = 1 ORDER BY id')
-            .all(profile.id)
+          experiences: (await db.all('SELECT * FROM experiences WHERE profile_id = ? AND is_active = TRUE ORDER BY id', profile.id))
             .map(serializeExperience),
-          educations: db
-            .prepare('SELECT * FROM educations WHERE profile_id = ? AND is_active = 1 ORDER BY id')
-            .all(profile.id)
+          educations: (await db.all('SELECT * FROM educations WHERE profile_id = ? AND is_active = TRUE ORDER BY id', profile.id))
             .map(serializeEducation),
-          certifications: db
-            .prepare('SELECT * FROM certifications WHERE profile_id = ? AND is_active = 1 ORDER BY id')
-            .all(profile.id)
+          certifications: (await db.all('SELECT * FROM certifications WHERE profile_id = ? AND is_active = TRUE ORDER BY id', profile.id))
             .map(serializeCertification),
         }
       })
@@ -189,27 +183,28 @@ module.exports = function createPublicRouter(db) {
 
   router.get(
     '/projects',
-    wrap((req, res) => {
+    wrap(async (req, res) => {
       const category = req.query.category || '_all'
-      const payload = cache.remember(
+      const payload = await cache.remember(
         'projects',
-        () => {
+        async () => {
           const { page, perPage, offset } = pageParams(req, 12)
-          const where = ['is_active = 1']
+          const where = ['is_active = TRUE']
           const params = []
           if (category !== '_all') {
             where.push('category = ?')
             params.push(category)
           }
           const clause = where.join(' AND ')
-          const total = db.prepare(`SELECT COUNT(*) AS c FROM projects WHERE ${clause}`).get(...params).c
-          const rows = db
-            .prepare(
-              `SELECT * FROM projects WHERE ${clause} ORDER BY display_order, created_at DESC LIMIT ? OFFSET ?`
-            )
-            .all(...params, perPage, offset)
+          const total = (await db.get(`SELECT COUNT(*)::int AS c FROM projects WHERE ${clause}`, ...params)).c
+          const rows = await db.all(
+            `SELECT * FROM projects WHERE ${clause} ORDER BY display_order, created_at DESC LIMIT ? OFFSET ?`,
+            ...params,
+            perPage,
+            offset
+          )
           return {
-            data: rows.map((row) => serializeProject(db, row, req)),
+            data: await Promise.all(rows.map((row) => serializeProject(db, row, req))),
             pagination: paginationMeta(page, perPage, total),
           }
         },
@@ -221,15 +216,13 @@ module.exports = function createPublicRouter(db) {
 
   router.get(
     '/projects/:slug',
-    wrap((req, res) => {
-      const project = cache.remember(
+    wrap(async (req, res) => {
+      const project = await cache.remember(
         'project',
-        () => {
-          const row = db
-            .prepare('SELECT * FROM projects WHERE is_active = 1 AND slug = ?')
-            .get(req.params.slug)
+        async () => {
+          const row = await db.get('SELECT * FROM projects WHERE is_active = TRUE AND slug = ?', req.params.slug)
           if (!row) throw new NotFoundError()
-          return serializeProject(db, row, req)
+          return await serializeProject(db, row, req)
         },
         req.params.slug
       )
@@ -243,11 +236,11 @@ module.exports = function createPublicRouter(db) {
 
   router.get(
     '/posts',
-    wrap((req, res) => {
+    wrap(async (req, res) => {
       const tag = req.query.tag || '_all'
-      const payload = cache.remember(
+      const payload = await cache.remember(
         'posts',
-        () => {
+        async () => {
           const { page, perPage, offset } = pageParams(req, 10)
           const where = [publishedWhere]
           const params = [isoNow()]
@@ -258,16 +251,15 @@ module.exports = function createPublicRouter(db) {
             params.push(tag)
           }
           const clause = where.join(' AND ')
-          const total = db
-            .prepare(`SELECT COUNT(*) AS c FROM posts WHERE ${clause}`)
-            .get(...params).c
-          const rows = db
-            .prepare(
-              `SELECT * FROM posts WHERE ${clause} ORDER BY published_at DESC LIMIT ? OFFSET ?`
-            )
-            .all(...params, perPage, offset)
+          const total = (await db.get(`SELECT COUNT(*)::int AS c FROM posts WHERE ${clause}`, ...params)).c
+          const rows = await db.all(
+            `SELECT * FROM posts WHERE ${clause} ORDER BY published_at DESC LIMIT ? OFFSET ?`,
+            ...params,
+            perPage,
+            offset
+          )
           return {
-            data: rows.map((row) => serializePost(db, row, req)),
+            data: await Promise.all(rows.map((row) => serializePost(db, row, req))),
             pagination: paginationMeta(page, perPage, total),
           }
         },
@@ -279,15 +271,13 @@ module.exports = function createPublicRouter(db) {
 
   router.get(
     '/posts/:slug',
-    wrap((req, res) => {
-      const post = cache.remember(
+    wrap(async (req, res) => {
+      const post = await cache.remember(
         'post',
-        () => {
-          const row = db
-            .prepare(`SELECT * FROM posts WHERE ${publishedWhere} AND slug = ?`)
-            .get(isoNow(), req.params.slug)
+        async () => {
+          const row = await db.get(`SELECT * FROM posts WHERE ${publishedWhere} AND slug = ?`, isoNow(), req.params.slug)
           if (!row) throw new NotFoundError()
-          return serializePost(db, row, req)
+          return await serializePost(db, row, req)
         },
         req.params.slug
       )
@@ -299,13 +289,11 @@ module.exports = function createPublicRouter(db) {
 
   router.get(
     '/publications',
-    wrap((req, res) => {
-      const payload = cache.remember('publications', () => {
-        const profile = firstProfile()
+    wrap(async (req, res) => {
+      const payload = await cache.remember('publications', async () => {
+        const profile = await firstProfile()
         if (!profile) throw new NotFoundError()
-        return db
-          .prepare('SELECT * FROM publications WHERE profile_id = ? AND is_active = 1 ORDER BY display_order, id')
-          .all(profile.id)
+        return (await db.all('SELECT * FROM publications WHERE profile_id = ? AND is_active = TRUE ORDER BY display_order, id', profile.id))
           .map(serializePublication)
       })
       res.ok(payload)
@@ -316,13 +304,11 @@ module.exports = function createPublicRouter(db) {
 
   router.get(
     '/services',
-    wrap((req, res) => {
-      const payload = cache.remember('services', () => {
-        const profile = firstProfile()
+    wrap(async (req, res) => {
+      const payload = await cache.remember('services', async () => {
+        const profile = await firstProfile()
         if (!profile) throw new NotFoundError()
-        return db
-          .prepare('SELECT * FROM services WHERE profile_id = ? AND is_active = 1 ORDER BY display_order, id')
-          .all(profile.id)
+        return (await db.all('SELECT * FROM services WHERE profile_id = ? AND is_active = TRUE ORDER BY display_order, id', profile.id))
           .map(serializeService)
       })
       res.ok(payload)
@@ -333,13 +319,11 @@ module.exports = function createPublicRouter(db) {
 
   router.get(
     '/testimonials',
-    wrap((req, res) => {
-      const payload = cache.remember('testimonials', () => {
-        const profile = firstProfile()
+    wrap(async (req, res) => {
+      const payload = await cache.remember('testimonials', async () => {
+        const profile = await firstProfile()
         if (!profile) throw new NotFoundError()
-        return db
-          .prepare('SELECT * FROM testimonials WHERE profile_id = ? AND is_active = 1 ORDER BY display_order, id')
-          .all(profile.id)
+        return (await db.all('SELECT * FROM testimonials WHERE profile_id = ? AND is_active = TRUE ORDER BY display_order, id', profile.id))
           .map(serializeTestimonial)
       })
       res.ok(payload)
@@ -350,12 +334,11 @@ module.exports = function createPublicRouter(db) {
 
   router.get(
     '/settings',
-    wrap((req, res) => {
-      const payload = cache.remember('settings', () => {
+    wrap(async (req, res) => {
+      const payload = await cache.remember('settings', async () => {
+        const rows = await db.all('SELECT * FROM settings WHERE is_public = TRUE')
         const out = {}
-        for (const row of db.prepare('SELECT * FROM settings WHERE is_public = 1').all()) {
-          out[row.key] = row.value
-        }
+        for (const row of rows) out[row.key] = row.value
         return out
       })
       res.ok(payload)
@@ -366,59 +349,51 @@ module.exports = function createPublicRouter(db) {
 
   router.get(
     '/search',
-    wrap((req, res) => {
+    wrap(async (req, res) => {
       const q = String(req.query.q || '').trim()
       if (q.length < 2) {
         return res.ok({ query: q, projects: [], posts: [], publications: [], services: [] })
       }
 
-      const payload = cache.remember(
+      const payload = await cache.remember(
         'search',
-        () => {
+        async () => {
           const term = `%${q}%`
 
-          const projects = db
-            .prepare(
-              `SELECT DISTINCT p.* FROM projects p
-               WHERE p.is_active = 1 AND (
-                 p.title LIKE ? OR p.summary LIKE ? OR p.description LIKE ? OR p.category LIKE ?
-                 OR (p.tech_stack IS NOT NULL AND json_valid(p.tech_stack)
-                     AND EXISTS (SELECT 1 FROM json_each(p.tech_stack) j WHERE j.value = ?))
-               )
-               ORDER BY p.created_at DESC LIMIT 10`
-            )
-            .all(term, term, term, term, q)
-            .map((row) => serializeProject(db, row, req))
+          const projects = await db.all(
+            `SELECT DISTINCT p.* FROM projects p
+             WHERE p.is_active = TRUE AND (
+               p.title ILIKE ? OR p.summary ILIKE ? OR p.description ILIKE ? OR p.category ILIKE ?
+               OR (p.tech_stack IS NOT NULL
+                   AND EXISTS (SELECT 1 FROM jsonb_array_elements_text(p.tech_stack) j WHERE j = ?))
+             )
+             ORDER BY p.created_at DESC LIMIT 10`,
+            term, term, term, term, q
+          ).then((rows) => Promise.all(rows.map((row) => serializeProject(db, row, req))))
 
-          const posts = db
-            .prepare(
-              `SELECT * FROM posts
-               WHERE status = 'published' AND published_at IS NOT NULL AND published_at <= ?
-                 AND (title LIKE ? OR excerpt LIKE ? OR body LIKE ?)
-               ORDER BY published_at DESC LIMIT 10`
-            )
-            .all(isoNow(), term, term, term)
-            .map((row) => serializePost(db, row, req))
+          const posts = await db.all(
+            `SELECT * FROM posts
+             WHERE status = 'published' AND published_at IS NOT NULL AND published_at <= ?
+               AND (title ILIKE ? OR excerpt ILIKE ? OR body ILIKE ?)
+             ORDER BY published_at DESC LIMIT 10`,
+            isoNow(), term, term, term
+          ).then((rows) => Promise.all(rows.map((row) => serializePost(db, row, req))))
 
-          const publications = db
-            .prepare(
-              `SELECT * FROM publications
-               WHERE is_active = 1 AND (title LIKE ? OR authors LIKE ? OR venue LIKE ? OR abstract LIKE ?)
-               ORDER BY created_at DESC LIMIT 8`
-            )
-            .all(term, term, term, term)
-            .map(serializePublication)
+          const publications = await db.all(
+            `SELECT * FROM publications
+             WHERE is_active = TRUE AND (title ILIKE ? OR authors ILIKE ? OR venue ILIKE ? OR abstract ILIKE ?)
+             ORDER BY created_at DESC LIMIT 8`,
+            term, term, term, term
+          )
 
-          const services = db
-            .prepare(
-              `SELECT * FROM services
-               WHERE is_active = 1 AND (title LIKE ? OR summary LIKE ? OR description LIKE ?)
-               ORDER BY display_order LIMIT 8`
-            )
-            .all(term, term, term)
-            .map(serializeService)
+          const services = await db.all(
+            `SELECT * FROM services
+             WHERE is_active = TRUE AND (title ILIKE ? OR summary ILIKE ? OR description ILIKE ?)
+             ORDER BY display_order LIMIT 8`,
+            term, term, term
+          )
 
-          return { query: q, projects, posts, publications, services }
+          return { query: q, projects, posts, publications: publications.map(serializePublication), services: services.map(serializeService) }
         },
         q.toLowerCase(),
         120
@@ -432,8 +407,8 @@ module.exports = function createPublicRouter(db) {
 
   router.post(
     '/contact',
-    wrap((req, res) => {
-      const { ok, errors, values } = validate(req.body, {
+    wrap(async (req, res) => {
+      const { ok, errors, values } = await validate(req.body, {
         name: ['required', 'string', 'max:255'],
         email: ['required', 'email', 'max:255'],
         phone: ['nullable', 'string', 'max:32'],
@@ -443,10 +418,9 @@ module.exports = function createPublicRouter(db) {
       if (!ok) throw new ValidationError(errors)
 
       const now = isoNow()
-      db.prepare(
+      await db.run(
         `INSERT INTO contact_messages (name, email, phone, subject, message, ip, device, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      ).run(
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         values.name,
         values.email,
         values.phone ?? null,
@@ -464,8 +438,8 @@ module.exports = function createPublicRouter(db) {
 
   router.post(
     '/feedback',
-    wrap((req, res) => {
-      const { ok, errors, values } = validate(req.body, {
+    wrap(async (req, res) => {
+      const { ok, errors, values } = await validate(req.body, {
         name: ['nullable', 'string', 'max:255'],
         email: ['nullable', 'email', 'max:255'],
         category: ['nullable', 'string', 'max:64'],
@@ -475,10 +449,9 @@ module.exports = function createPublicRouter(db) {
       if (!ok) throw new ValidationError(errors)
 
       const now = isoNow()
-      db.prepare(
+      await db.run(
         `INSERT INTO feedback (name, email, category, rating, message, ip, device, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      ).run(
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         values.name ?? null,
         values.email ?? null,
         values.category ?? null,
@@ -496,10 +469,10 @@ module.exports = function createPublicRouter(db) {
 
   router.post(
     '/analytics',
-    wrap((req, res) => {
+    wrap(async (req, res) => {
       if (!config.analyticsEnabled) return res.noContent()
 
-      const { ok, errors, values } = validate(req.body, {
+      const { ok, errors, values } = await validate(req.body, {
         event: ['nullable', 'string', 'max:64'],
         path: ['nullable', 'string', 'max:255'],
         referrer: ['nullable', 'string', 'max:512'],
@@ -508,15 +481,14 @@ module.exports = function createPublicRouter(db) {
       if (!ok) throw new ValidationError(errors)
 
       const ip = req.ip || ''
-      db.prepare(
+      await db.run(
         `INSERT INTO analytics_events (event, path, referrer, user_agent, ip, meta, occurred_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
-      ).run(
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
         values.event || 'pageview',
         values.path ?? null,
         values.referrer ?? null,
         String(req.headers['user-agent'] || '').slice(0, 512),
-        require('crypto').createHash('sha256').update(ip).digest('hex'),
+        crypto.createHash('sha256').update(ip).digest('hex'),
         values.meta ? JSON.stringify(values.meta) : null,
         isoNow()
       )
@@ -529,8 +501,8 @@ module.exports = function createPublicRouter(db) {
 
   router.post(
     '/auth/register',
-    wrap((req, res) => {
-      const { ok, errors, values } = validate(req.body, {
+    wrap(async (req, res) => {
+      const { ok, errors, values } = await validate(req.body, {
         name: ['required', 'string', 'max:255'],
         email: ['required', 'email', 'max:255', 'unique:users,email'],
         password: ['required', 'string', 'min:8', 'confirmed'],
@@ -538,12 +510,17 @@ module.exports = function createPublicRouter(db) {
       if (!ok) throw new ValidationError(errors)
 
       const now = isoNow()
-      db.prepare(
-        'INSERT INTO users (name, email, password, created_at, updated_at) VALUES (?, ?, ?, ?, ?)'
-      ).run(values.name, values.email, bcrypt.hashSync(values.password, 12), now, now)
-      const userId = Number(db.prepare('SELECT id FROM users WHERE email = ?').get(values.email).id)
+      const createdAt = await db.run(
+        'INSERT INTO users (name, email, password, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
+        values.name,
+        values.email,
+        bcrypt.hashSync(values.password, 12),
+        now,
+        now
+      )
+      const userId = createdAt.id
 
-      const token = issueToken(db, userId, ['*'])
+      const token = await issueToken(db, userId, ['*'])
       res.created(
         {
           user: { id: userId, name: values.name, email: values.email, roles: [] },
@@ -556,21 +533,21 @@ module.exports = function createPublicRouter(db) {
 
   router.post(
     '/auth/login',
-    wrap((req, res) => {
-      const { ok, errors, values } = validate(req.body, {
+    wrap(async (req, res) => {
+      const { ok, errors, values } = await validate(req.body, {
         email: ['required', 'email'],
         password: ['required', 'string'],
       })
       if (!ok) throw new ValidationError(errors)
 
-      const user = db.prepare('SELECT * FROM users WHERE email = ?').get(values.email)
+      const user = await db.get('SELECT * FROM users WHERE email = ?', values.email)
       if (!user || !bcrypt.compareSync(values.password, user.password)) {
         return res.error('These credentials do not match our records.', 401)
       }
 
-      const roles = rolesFor(db, user.id)
-      const permissions = permissionsFor(db, user.id)
-      const token = issueToken(db, user.id, permissions)
+      const roles = await rolesFor(db, user.id)
+      const permissions = await permissionsFor(db, user.id)
+      const token = await issueToken(db, user.id, permissions)
 
       res.ok(
         {
@@ -585,10 +562,8 @@ module.exports = function createPublicRouter(db) {
   router.post(
     '/auth/logout',
     auth,
-    wrap((req, res) => {
-      db.prepare("DELETE FROM personal_access_tokens WHERE tokenable_type = 'User' AND tokenable_id = ?").run(
-        req.user.id
-      )
+    wrap(async (req, res) => {
+      await db.run("DELETE FROM personal_access_tokens WHERE tokenable_type = 'User' AND tokenable_id = ?", req.user.id)
       res.noContent()
     })
   )
@@ -596,7 +571,7 @@ module.exports = function createPublicRouter(db) {
   router.get(
     '/auth/me',
     auth,
-    wrap((req, res) => {
+    wrap(async (req, res) => {
       res.ok({
         id: req.user.id,
         name: req.user.name,

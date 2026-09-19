@@ -1,18 +1,18 @@
 'use strict'
 
 const config = require('./config')
-const { getDb } = require('./lib/db')
-const { runImportIfNeeded } = require('./lib/import')
+const { db } = require('./lib/db')
+const { SCHEMA } = require('./lib/schema')
+const { seedIfEmpty } = require('./lib/seed')
 const { createApp } = require('./app')
 
-function bootstrap() {
-  const db = getDb()
-
-  const result = runImportIfNeeded(db)
-  if (result.imported) {
-    console.log(`[import] legacy data imported (${result.files} media files copied)`)
-  } else if (result.seeded) {
-    console.log('[import] no legacy database found — seeded a fresh admin account')
+async function bootstrap() {
+  await db.exec(SCHEMA)
+  const seeded = await seedIfEmpty()
+  if (seeded.seeded) {
+    console.log('[boot] database was empty — seeded an admin account + starter profile')
+  } else {
+    console.log('[boot] database ready')
   }
 
   const app = createApp(db)
@@ -20,11 +20,11 @@ function bootstrap() {
     console.log(`TEFERA API listening on http://localhost:${config.port} (api: /api/v1)`)
   })
 
-  const shutdown = (signal) => {
+  const shutdown = async (signal) => {
     console.log(`\n${signal} received, shutting down…`)
-    server.close(() => {
+    server.close(async () => {
       try {
-        db.close()
+        await db.close()
       } catch {
         /* ignore */
       }
@@ -37,4 +37,7 @@ function bootstrap() {
   process.on('SIGTERM', () => shutdown('SIGTERM'))
 }
 
-bootstrap()
+bootstrap().catch((error) => {
+  console.error('[boot] failed:', error && error.message)
+  process.exit(1)
+})

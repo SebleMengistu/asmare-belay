@@ -15,6 +15,31 @@ function resolveEnvPath(value, fallback) {
 
 const storageDir = path.join(ROOT, 'storage')
 
+/**
+ * Postgres / Supabase connection. Prefer DATABASE_URL (e.g. Supabase's
+ * "Connection string" — pooler or direct). Discrete PG* vars are supported as
+ * a fallback for local development.
+ */
+function databaseUrl() {
+  if (process.env.DATABASE_URL) return process.env.DATABASE_URL
+  const parts = {
+    host: process.env.PGHOST || 'localhost',
+    port: process.env.PGPORT || '5432',
+    user: process.env.PGUSER || 'postgres',
+    password: process.env.PGPASSWORD || '',
+    database: process.env.PGDATABASE || 'postgres',
+  }
+  const auth = parts.password ? `${parts.user}:${encodeURIComponent(parts.password)}` : parts.user
+  return `postgresql://${auth}@${parts.host}:${parts.port}/${parts.database}`
+}
+
+function dbSsl() {
+  if (process.env.DB_SSL) return String(process.env.DB_SSL).toLowerCase() !== 'false'
+  const url = databaseUrl()
+  if (/\?.*sslmode=(require|verify-full|verify-ca)/i.test(url)) return true
+  return process.env.NODE_ENV === 'production'
+}
+
 module.exports = {
   root: ROOT,
   port,
@@ -22,6 +47,9 @@ module.exports = {
   appName: process.env.APP_NAME || 'TEFERA Portfolio',
   appUrl: (process.env.APP_URL || `http://localhost:${port}`).replace(/\/+$/, ''),
   frontendUrl: (process.env.FRONTEND_URL || 'http://localhost:5175').replace(/\/+$/, ''),
+  databaseUrl: databaseUrl(),
+  dbSsl: dbSsl(),
+  // Legacy SQLite sources — only used by the one-time migration script.
   dbPath: resolveEnvPath(process.env.DB_PATH, path.join(ROOT, 'data', 'portfolio.sqlite')),
   legacyDbPath: resolveEnvPath(
     process.env.LEGACY_DB_PATH,

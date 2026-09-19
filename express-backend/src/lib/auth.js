@@ -3,7 +3,6 @@
 const crypto = require('crypto')
 const { UnauthorizedError, ForbiddenError } = require('./respond')
 const { isoNow } = require('./format')
-const { lastInsertId } = require('./db')
 
 function sha256(value) {
   return crypto.createHash('sha256').update(String(value)).digest('hex')
@@ -16,76 +15,84 @@ function safeEqual(a, b) {
   return crypto.timingSafeEqual(bufA, bufB)
 }
 
-function rolesFor(db, userId) {
-  return db
-    .prepare(
-      `SELECT r.name FROM model_has_roles mhr
-       JOIN roles r ON r.id = mhr.role_id
-       WHERE mhr.model_type = 'User' AND mhr.model_id = ?
-       ORDER BY r.id`
-    )
-    .all(userId)
-    .map((row) => row.name)
+async function rolesFor(db, userId) {
+  const rows = await db.all(
+    `SELECT r.name FROM model_has_roles mhr
+     JOIN roles r ON r.id = mhr.role_id
+     WHERE mhr.model_type = 'User' AND mhr.model_id = ?
+     ORDER BY r.id`,
+    userId
+  )
+  return rows.map((row) => row.name)
 }
 
-function permissionsFor(db, userId) {
-  return db
-    .prepare(
-      `SELECT DISTINCT p.name FROM role_has_permissions rhp
-       JOIN permissions p ON p.id = rhp.permission_id
-       JOIN model_has_roles mhr ON mhr.role_id = rhp.role_id
-       WHERE mhr.model_type = 'User' AND mhr.model_id = ?
-       ORDER BY p.name`
-    )
-    .all(userId)
-    .map((row) => row.name)
+async function permissionsFor(db, userId) {
+  const rows = await db.all(
+    `SELECT DISTINCT p.name FROM role_has_permissions rhp
+     JOIN permissions p ON p.id = rhp.permission_id
+     JOIN model_has_roles mhr ON mhr.role_id = rhp.role_id
+     WHERE mhr.model_type = 'User' AND mhr.model_id = ?
+     ORDER BY p.name`,
+    userId
+  )
+  return rows.map((row) => row.name)
 }
 
 /** Sanctum-compatible opaque token: "<id>|<plain>", stored as sha256(plain). */
-function issueToken(db, userId, abilities = ['*'], name = 'token') {
+async function issueToken(db, userId, abilities = ['*'], name = 'token') {
   const plain = crypto.randomBytes(40).toString('base64')
   const now = isoNow()
-  db.prepare(
+  const result = await db.run(
     `INSERT INTO personal_access_tokens
        (tokenable_type, tokenable_id, name, token, abilities, created_at, updated_at)
-     VALUES ('User', ?, ?, ?, ?, ?, ?)`
-  ).run(userId, name, sha256(plain), JSON.stringify(abilities), now, now)
-  return `${lastInsertId(db)}|${plain}`
+     VALUES ('User', ?, ?, ?, ?, ?, ?)`,
+    userId,
+    name,
+    sha256(plain),
+    JSON.stringify(abilities),
+    now,
+    now
+  )
+  return `${result.id}|${plain}`
 }
 
-function resolveToken(db, raw) {
+async function resolveToken(db, raw) {
   if (!raw || typeof raw !== 'string') return null
   const idx = raw.indexOf('|')
   if (idx <= 0) return null
   const id = Number(raw.slice(0, idx))
   const plain = raw.slice(idx + 1)
   if (!Number.isInteger(id) || !plain) return null
-  const row = db.prepare('SELECT * FROM personal_access_tokens WHERE id = ?').get(id)
+  const row = await db.get('SELECT * FROM personal_access_tokens WHERE id = ?', id)
   if (!row || !safeEqual(sha256(plain), row.token)) return null
-  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(row.tokenable_id)
+  const user = await db.get('SELECT * FROM users WHERE id = ?', row.tokenable_id)
   if (!user) return null
   return { token: row, user }
 }
 
 function requireAuth(db) {
-  return function authMiddleware(req, res, next) {
-    const header = req.headers.authorization || ''
-    const match = /^Bearer\s+(.+)$/i.exec(header.trim())
-    if (!match) return next(new UnauthorizedError())
-    const resolved = resolveToken(db, match[1])
-    if (!resolved) return next(new UnauthorizedError())
+  return async function authMiddleware(req, res, next) {
+    try {
+      const header = req.headers.authorization || ''
+      const match = /^Bearer\s+(.+)$/i.exec(header.trim())
+      if (!match) return next(new UnauthorizedError())
+      const resolved = await resolveToken(db, match[1])
+      if (!resolved) return next(new UnauthorizedError())
 
-    const { user, token } = resolved
-    db.prepare('UPDATE personal_access_tokens SET last_used_at = ? WHERE id = ?').run(isoNow(), token.id)
+      const { user, token } = resolved
+      await db.run('UPDATE personal_access_tokens SET last_used_at = ? WHERE id = ?', isoNow(), token.id)
 
-    req.user = {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      roles: rolesFor(db, user.id),
-      permissions: permissionsFor(db, user.id),
+      req.user = {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        roles: await rolesFor(db, user.id),
+        permissions: await permissionsFor(db, user.id),
+      }
+      return next()
+    } catch (error) {
+      return next(error)
     }
-    return next()
   }
 }
 

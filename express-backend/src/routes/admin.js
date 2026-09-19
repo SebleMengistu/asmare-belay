@@ -16,7 +16,6 @@ const {
   sqliteToIso,
 } = require('../lib/format')
 const { requireAuth, requireAdmin } = require('../lib/auth')
-const { lastInsertId } = require('../lib/db')
 const {
   serializeSkill,
   serializeExperience,
@@ -67,71 +66,53 @@ module.exports = function createAdminRouter(db) {
 
   router.use(auth, requireAdmin)
 
-  const columnCache = new Map()
-  function hasColumn(table, column) {
-    const key = `${table}.${column}`
-    if (!columnCache.has(key)) {
-      const cols = db
-        .prepare(`PRAGMA table_info(${table})`)
-        .all()
-        .map((row) => row.name)
-      columnCache.set(key, cols.includes(column))
-    }
-    return columnCache.get(key)
-  }
-
-  function firstProfileId() {
-    const row = db.prepare('SELECT id FROM profiles ORDER BY id LIMIT 1').get()
+  async function firstProfileId() {
+    const row = await db.get('SELECT id FROM profiles ORDER BY id LIMIT 1')
     return row ? row.id : null
   }
 
-  function listRows(table, req) {
+  async function listRows(table, req) {
     const search = String(req.query.search || '').trim()
     let where = ''
     const params = []
     if (search !== '') {
-      const columns = ['title', 'name'].filter((column) => hasColumn(table, column))
-      if (columns.length > 0) {
-        where = `WHERE ${columns.map((column) => `${column} LIKE ?`).join(' OR ')}`
-        for (const _ of columns) params.push(`%${search}%`)
+      const columns = await db.tableColumns(table)
+      const searchable = columns.filter((column) => column === 'title' || column === 'name')
+      if (searchable.length > 0) {
+        where = `WHERE ${searchable.map((column) => `${column} ILIKE ?`).join(' OR ')}`
+        for (const _ of searchable) params.push(`%${search}%`)
       }
     }
-    return db.prepare(`SELECT * FROM ${table} ${where} ORDER BY created_at DESC`).all(...params)
+    return db.all(`SELECT * FROM ${table} ${where} ORDER BY created_at DESC`, ...params)
   }
 
-  function storeRow(table, columns) {
-    const keys = Object.keys(columns)
+  async function storeRow(table, columns) {
     const now = isoNow()
-    if (hasColumn(table, 'created_at')) {
+    if (await db.hasColumn(table, 'created_at')) {
       columns.created_at = now
       columns.updated_at = now
-      if (!keys.includes('created_at')) keys.push('created_at', 'updated_at')
     }
     const allKeys = Object.keys(columns)
     const placeholders = allKeys.map(() => '?').join(', ')
-    db.prepare(
-      `INSERT INTO ${table} (${allKeys.map((k) => `"${k}"`).join(', ')}) VALUES (${placeholders})`
-    ).run(...allKeys.map((key) => columns[key]))
-    return lastInsertId(db)
+    const result = await db.run(
+      `INSERT INTO ${table} (${allKeys.map((k) => `"${k}"`).join(', ')}) VALUES (${placeholders})`,
+      ...allKeys.map((key) => columns[key])
+    )
+    return result.id
   }
 
-  function updateRow(table, id, columns) {
-    const keys = Object.keys(columns)
-    if (hasColumn(table, 'updated_at')) {
+  async function updateRow(table, id, columns) {
+    if (await db.hasColumn(table, 'updated_at')) {
       columns.updated_at = isoNow()
-      if (!keys.includes('updated_at')) keys.push('updated_at')
     }
     const allKeys = Object.keys(columns)
     if (allKeys.length === 0) return
     const assignments = allKeys.map((key) => `"${key}" = ?`).join(', ')
-    db.prepare(`UPDATE ${table} SET ${assignments} WHERE id = ?`).run(
-      ...allKeys.map((key) => columns[key]),
-      id
-    )
+    await db.run(`UPDATE ${table} SET ${assignments} WHERE id = ?`, ...allKeys.map((key) => columns[key]), id)
   }
 
-  function findOrFail(table, id) {
-    const row = db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(Number(id))
+  async function findOrFail(table, id) {
+    const row = await db.get(`SELECT * FROM ${table} WHERE id = ?`, Number(id))
     if (!row) throw new NotFoundError()
     return row
   }
@@ -160,19 +141,26 @@ module.exports = function createAdminRouter(db) {
 
   router.get(
     '/dashboard',
-    wrap((req, res) => {
-      const profile = db.prepare('SELECT * FROM profiles ORDER BY id LIMIT 1').get()
+    wrap(async (req, res) => {
+      const profile = await db.get('SELECT * FROM profiles ORDER BY id LIMIT 1')
+      const countRows = await Promise.all([
+        db.get('SELECT COUNT(*)::int AS c FROM projects'),
+        db.get('SELECT COUNT(*)::int AS c FROM posts'),
+        db.get("SELECT COUNT(*)::int AS c FROM posts WHERE status = 'published'"),
+        db.get('SELECT COUNT(*)::int AS c FROM contact_messages'),
+        db.get('SELECT COUNT(*)::int AS c FROM contact_messages WHERE read_at IS NULL'),
+      ])
+      const recentMessages = await db.all(
+        'SELECT id, name, email, subject, read_at, created_at FROM contact_messages ORDER BY created_at DESC, id DESC LIMIT 5'
+      )
+
       res.ok({
         counts: {
-          projects: db.prepare('SELECT COUNT(*) AS c FROM projects').get().c,
-          posts: db.prepare('SELECT COUNT(*) AS c FROM posts').get().c,
-          published_posts: db
-            .prepare("SELECT COUNT(*) AS c FROM posts WHERE status = 'published'")
-            .get().c,
-          messages: db.prepare('SELECT COUNT(*) AS c FROM contact_messages').get().c,
-          unread_messages: db
-            .prepare('SELECT COUNT(*) AS c FROM contact_messages WHERE read_at IS NULL')
-            .get().c,
+          projects: countRows[0].c,
+          posts: countRows[1].c,
+          published_posts: countRows[2].c,
+          messages: countRows[3].c,
+          unread_messages: countRows[4].c,
         },
         profile: profile
           ? {
@@ -182,19 +170,14 @@ module.exports = function createAdminRouter(db) {
               available_for_work: toBoolean(profile.available_for_work),
             }
           : null,
-        recent_messages: db
-          .prepare(
-            'SELECT id, name, email, subject, read_at, created_at FROM contact_messages ORDER BY created_at DESC, id DESC LIMIT 5'
-          )
-          .all()
-          .map((row) => ({
-            id: row.id,
-            name: row.name,
-            email: row.email,
-            subject: row.subject,
-            read_at: toIso(sqliteToIso(row.read_at)),
-            created_at: toIso(sqliteToIso(row.created_at)),
-          })),
+        recent_messages: recentMessages.map((row) => ({
+          id: row.id,
+          name: row.name,
+          email: row.email,
+          subject: row.subject,
+          read_at: toIso(sqliteToIso(row.read_at)),
+          created_at: toIso(sqliteToIso(row.created_at)),
+        })),
       })
     })
   )
@@ -203,7 +186,7 @@ module.exports = function createAdminRouter(db) {
 
   router.get(
     '/analytics/overview',
-    wrap((req, res) => {
+    wrap(async (req, res) => {
       const fromStr = req.query.from
       const toStr = req.query.to
       const range =
@@ -214,74 +197,81 @@ module.exports = function createAdminRouter(db) {
       const rangeClause = range ? 'WHERE occurred_at BETWEEN ? AND ?' : ''
       const rangeParams = range ? [range.from, range.to] : []
 
-      const pageviews = db
-        .prepare(`SELECT COUNT(*) AS c FROM analytics_events ${rangeClause ? rangeClause + ' AND' : 'WHERE'} event = 'pageview'`)
-        .get(...rangeParams).c
-      const uniqueVisitors = db
-        .prepare(
-          `SELECT COUNT(DISTINCT ip) AS c FROM analytics_events ${
-            rangeClause ? rangeClause + ' AND' : 'WHERE'
-          } event = 'pageview'`
+      const pageviewsRow = await db.get(
+        `SELECT COUNT(*)::int AS c FROM analytics_events ${rangeClause ? rangeClause + ' AND' : 'WHERE'} event = 'pageview'`,
+        ...rangeParams
+      )
+      const uniqueRow = await db.get(
+        `SELECT COUNT(DISTINCT ip)::int AS c FROM analytics_events ${
+          rangeClause ? rangeClause + ' AND' : 'WHERE'
+        } event = 'pageview'`,
+        ...rangeParams
+      )
+
+      const countEvent = async (event) => {
+        const row = await db.get(
+          `SELECT COUNT(*)::int AS c FROM analytics_events ${rangeClause ? rangeClause + ' AND' : 'WHERE'} event = ?`,
+          ...rangeParams,
+          event
         )
-        .get(...rangeParams).c
-
-      const countEvent = (event) =>
-        db
-          .prepare(`SELECT COUNT(*) AS c FROM analytics_events ${rangeClause ? rangeClause + ' AND' : 'WHERE'} event = ?`)
-          .get(...rangeParams, event).c
-
-      const outbound = {
-        github_click: countEvent('github_click'),
-        linkedin_click: countEvent('linkedin_click'),
-        email_click: countEvent('email_click'),
-        telegram_click: countEvent('telegram_click'),
-        demo_click: countEvent('demo_click'),
-        cv_download: countEvent('cv_download'),
-        contact_form_submit: countEvent('contact_form_submit'),
-        feedback_submit: countEvent('feedback_submit'),
+        return row.c
       }
 
-      const topPages = db
-        .prepare(
-          `SELECT path, COUNT(*) AS total FROM analytics_events ${
-            rangeClause ? rangeClause + ' AND' : 'WHERE'
-          } event = 'pageview' AND path IS NOT NULL GROUP BY path ORDER BY total DESC LIMIT 10`
-        )
-        .all(...rangeParams)
+      const outbound = {
+        github_click: await countEvent('github_click'),
+        linkedin_click: await countEvent('linkedin_click'),
+        email_click: await countEvent('email_click'),
+        telegram_click: await countEvent('telegram_click'),
+        demo_click: await countEvent('demo_click'),
+        cv_download: await countEvent('cv_download'),
+        contact_form_submit: await countEvent('contact_form_submit'),
+        feedback_submit: await countEvent('feedback_submit'),
+      }
+
+      const topPages = await db.all(
+        `SELECT path, COUNT(*)::int AS total FROM analytics_events ${
+          rangeClause ? rangeClause + ' AND' : 'WHERE'
+        } event = 'pageview' AND path IS NOT NULL GROUP BY path ORDER BY total DESC LIMIT 10`,
+        ...rangeParams
+      )
 
       const trendFrom = range ? range.from : startOfDay(new Date(Date.now() - 13 * 86400000).toISOString())
       const trendTo = range ? range.to : endOfDay(new Date().toISOString())
-      const trend = db
-        .prepare(
-          `SELECT date(occurred_at) AS day,
-                  SUM(CASE WHEN event = 'pageview' THEN 1 ELSE 0 END) AS pageviews,
-                  COUNT(*) AS total
-           FROM analytics_events WHERE occurred_at BETWEEN ? AND ?
-           GROUP BY day ORDER BY day`
-        )
-        .all(trendFrom, trendTo)
-        .map((row) => ({ date: String(row.day), pageviews: Number(row.pageviews), events: Number(row.total) }))
+      const trendRows = await db.all(
+        `SELECT to_char(occurred_at, 'YYYY-MM-DD') AS day,
+                SUM(CASE WHEN event = 'pageview' THEN 1 ELSE 0 END)::int AS pageviews,
+                COUNT(*)::int AS total
+         FROM analytics_events WHERE occurred_at BETWEEN ? AND ?
+         GROUP BY day ORDER BY day`,
+        trendFrom,
+        trendTo
+      )
+      const trend = trendRows.map((row) => ({ date: String(row.day), pageviews: Number(row.pageviews), events: Number(row.total) }))
 
-      const countContacts = () =>
-        range
-          ? db
-              .prepare('SELECT COUNT(*) AS c FROM contact_messages WHERE created_at BETWEEN ? AND ?')
-              .get(range.from, range.to).c
-          : db.prepare('SELECT COUNT(*) AS c FROM contact_messages').get().c
-      const countFeedback = () =>
-        range
-          ? db
-              .prepare('SELECT COUNT(*) AS c FROM feedback WHERE created_at BETWEEN ? AND ?')
-              .get(range.from, range.to).c
-          : db.prepare('SELECT COUNT(*) AS c FROM feedback').get().c
+      const countContacts = async () => {
+        if (range) {
+          const row = await db.get('SELECT COUNT(*)::int AS c FROM contact_messages WHERE created_at BETWEEN ? AND ?', range.from, range.to)
+          return row.c
+        }
+        const row = await db.get('SELECT COUNT(*)::int AS c FROM contact_messages')
+        return row.c
+      }
+      const countFeedback = async () => {
+        if (range) {
+          const row = await db.get('SELECT COUNT(*)::int AS c FROM feedback WHERE created_at BETWEEN ? AND ?', range.from, range.to)
+          return row.c
+        }
+        const row = await db.get('SELECT COUNT(*)::int AS c FROM feedback')
+        return row.c
+      }
 
       res.ok({
         range: range ? { from: range.fromDate, to: range.toDate } : null,
         totals: {
-          pageviews,
-          unique_visitors: uniqueVisitors,
-          contacts: countContacts(),
-          feedback: countFeedback(),
+          pageviews: pageviewsRow.c,
+          unique_visitors: uniqueRow.c,
+          contacts: await countContacts(),
+          feedback: await countFeedback(),
         },
         outbound,
         top_pages: topPages,
@@ -294,29 +284,31 @@ module.exports = function createAdminRouter(db) {
 
   router.get(
     '/profile',
-    wrap((req, res) => {
-      res.ok(db.prepare('SELECT * FROM profiles ORDER BY id').all().map((row) => serializeProfile(db, row, req)))
+    wrap(async (req, res) => {
+      const rows = await db.all('SELECT * FROM profiles ORDER BY id')
+      res.ok(await Promise.all(rows.map((row) => serializeProfile(db, row, req))))
     })
   )
 
   router.get(
     '/profiles',
-    wrap((req, res) => {
-      res.ok(db.prepare('SELECT * FROM profiles ORDER BY id').all().map((row) => serializeProfile(db, row, req)))
+    wrap(async (req, res) => {
+      const rows = await db.all('SELECT * FROM profiles ORDER BY id')
+      res.ok(await Promise.all(rows.map((row) => serializeProfile(db, row, req))))
     })
   )
 
   router.get(
     '/profiles/:id',
-    wrap((req, res) => {
-      res.ok(serializeProfile(db, findOrFail('profiles', req.params.id), req))
+    wrap(async (req, res) => {
+      res.ok(await serializeProfile(db, await findOrFail('profiles', req.params.id), req))
     })
   )
 
   const updateProfile = wrap(async (req, res) => {
-    const profile = findOrFail('profiles', req.params.id)
+    const profile = await findOrFail('profiles', req.params.id)
 
-    const { ok, errors, values } = validate(req.body, {
+    const { ok, errors, values } = await validate(req.body, {
       first_name: ['nullable', 'string', 'max:255'],
       last_name: ['nullable', 'string', 'max:255'],
       display_name: ['nullable', 'string', 'max:255'],
@@ -370,23 +362,23 @@ module.exports = function createAdminRouter(db) {
       json: ['roles', 'meta'],
       boolean: ['available_for_work'],
     })
-    updateRow('profiles', profile.id, columns)
+    await updateRow('profiles', profile.id, columns)
 
     if (avatar) {
-      clearMediaCollection(db, 'Profile', profile.id, 'avatar')
+      await clearMediaCollection(db, 'Profile', profile.id, 'avatar')
       await storeUpload(db, { model_type: 'Profile', model_id: profile.id, collection_name: 'avatar', file: avatar, name: 'avatar' })
     }
     if (cover) {
-      clearMediaCollection(db, 'Profile', profile.id, 'cover')
+      await clearMediaCollection(db, 'Profile', profile.id, 'cover')
       await storeUpload(db, { model_type: 'Profile', model_id: profile.id, collection_name: 'cover', file: cover, name: 'cover' })
     }
     if (resume) {
-      clearMediaCollection(db, 'Profile', profile.id, 'resume')
+      await clearMediaCollection(db, 'Profile', profile.id, 'resume')
       await storeUpload(db, { model_type: 'Profile', model_id: profile.id, collection_name: 'resume', file: resume, name: 'resume' })
     }
 
     cache.flush()
-    res.ok(serializeProfile(db, findOrFail('profiles', profile.id), req), 'Profile updated.')
+    res.ok(await serializeProfile(db, await findOrFail('profiles', profile.id), req), 'Profile updated.')
   })
 
   router.put('/profile/:id', updateProfile)
@@ -539,21 +531,22 @@ module.exports = function createAdminRouter(db) {
   for (const cfg of SIMPLE) {
     router.get(
       `/${cfg.name}`,
-      wrap((req, res) => {
-        res.ok(listRows(cfg.table, req).map(cfg.serialize))
+      wrap(async (req, res) => {
+        const rows = await listRows(cfg.table, req)
+        res.ok(rows.map(cfg.serialize))
       })
     )
 
     router.get(
       `/${cfg.name}/:id`,
-      wrap((req, res) => {
-        res.ok(cfg.serialize(findOrFail(cfg.table, req.params.id)))
+      wrap(async (req, res) => {
+        res.ok(cfg.serialize(await findOrFail(cfg.table, req.params.id)))
       })
     )
 
     router.post(
       `/${cfg.name}`,
-      wrap((req, res) => {
+      wrap(async (req, res) => {
         if (cfg.normalize) {
           for (const key of cfg.normalize) {
             if (Object.prototype.hasOwnProperty.call(req.body, key)) {
@@ -561,28 +554,28 @@ module.exports = function createAdminRouter(db) {
             }
           }
         }
-        const { ok, errors, values } = validate(req.body, cfg.rules(false))
+        const { ok, errors, values } = await validate(req.body, cfg.rules(false))
         if (!ok) throw new ValidationError(errors)
 
         const columns = buildColumns(values, cfg.columns)
-        if (cfg.profileScoped && hasColumn(cfg.table, 'profile_id')) {
-          columns.profile_id = firstProfileId()
+        if (cfg.profileScoped && (await db.hasColumn(cfg.table, 'profile_id'))) {
+          columns.profile_id = await firstProfileId()
         }
-        if (hasColumn(cfg.table, 'slug')) {
-          columns.slug = uniqueSlug(
+        if (await db.hasColumn(cfg.table, 'slug')) {
+          columns.slug = await uniqueSlug(
             db,
             cfg.table,
             values.slug && String(values.slug).trim() !== '' ? values.slug : values.title
           )
         }
-        const id = storeRow(cfg.table, columns)
+        const id = await storeRow(cfg.table, columns)
         cache.flush()
-        res.created(cfg.serialize(findOrFail(cfg.table, id)), `${cfg.singular} created.`)
+        res.created(cfg.serialize(await findOrFail(cfg.table, id)), `${cfg.singular} created.`)
       })
     )
 
-    const update = wrap((req, res) => {
-      const existing = findOrFail(cfg.table, req.params.id)
+    const update = wrap(async (req, res) => {
+      const existing = await findOrFail(cfg.table, req.params.id)
       if (cfg.normalize) {
         for (const key of cfg.normalize) {
           if (Object.prototype.hasOwnProperty.call(req.body, key)) {
@@ -590,27 +583,27 @@ module.exports = function createAdminRouter(db) {
           }
         }
       }
-      const { ok, errors, values } = validate(req.body, cfg.rules(true))
+      const { ok, errors, values } = await validate(req.body, cfg.rules(true))
       if (!ok) throw new ValidationError(errors)
 
       const columns = buildColumns(values, cfg.columns)
-      if (hasColumn(cfg.table, 'slug')) {
+      if (await db.hasColumn(cfg.table, 'slug')) {
         const base =
           values.slug && String(values.slug).trim() !== '' ? values.slug : values.title || existing.title
-        columns.slug = uniqueSlug(db, cfg.table, base, existing.id)
+        columns.slug = await uniqueSlug(db, cfg.table, base, existing.id)
       }
-      updateRow(cfg.table, existing.id, columns)
+      await updateRow(cfg.table, existing.id, columns)
       cache.flush()
-      res.ok(cfg.serialize(findOrFail(cfg.table, existing.id)), `${cfg.singular} updated.`)
+      res.ok(cfg.serialize(await findOrFail(cfg.table, existing.id)), `${cfg.singular} updated.`)
     })
 
     router.put(`/${cfg.name}/:id`, update)
 
     router.delete(
       `/${cfg.name}/:id`,
-      wrap((req, res) => {
-        const row = findOrFail(cfg.table, req.params.id)
-        db.prepare(`DELETE FROM ${cfg.table} WHERE id = ?`).run(row.id)
+      wrap(async (req, res) => {
+        const row = await findOrFail(cfg.table, req.params.id)
+        await db.run(`DELETE FROM ${cfg.table} WHERE id = ?`, row.id)
         cache.flush()
         res.noContent('Deleted')
       })
@@ -637,16 +630,15 @@ module.exports = function createAdminRouter(db) {
     skill_ids: ['nullable', 'array'],
   })
 
-  function syncProjectSkills(projectId, skillIds) {
-    db.prepare('DELETE FROM project_skill WHERE project_id = ?').run(projectId)
+  async function syncProjectSkills(projectId, skillIds) {
+    await db.run('DELETE FROM project_skill WHERE project_id = ?', projectId)
     if (!Array.isArray(skillIds)) return
-    const insert = db.prepare('INSERT OR IGNORE INTO project_skill (project_id, skill_id) VALUES (?, ?)')
     for (const skillId of skillIds) {
       const id = toInt(skillId)
       if (id === null) continue
-      const exists = db.prepare('SELECT 1 FROM skills WHERE id = ?').get(id)
+      const exists = await db.get('SELECT 1 FROM skills WHERE id = ?', id)
       if (!exists) throw new ValidationError({ 'skill_ids.0': ['The selected skill ids is invalid.'] })
-      insert.run(projectId, id)
+      await db.run('INSERT INTO project_skill (project_id, skill_id) VALUES (?, ?) ON CONFLICT DO NOTHING', projectId, id)
     }
   }
 
@@ -660,15 +652,16 @@ module.exports = function createAdminRouter(db) {
 
   router.get(
     '/projects',
-    wrap((req, res) => {
-      res.ok(listRows('projects', req).map((row) => serializeProject(db, row, req)))
+    wrap(async (req, res) => {
+      const rows = await listRows('projects', req)
+      res.ok(await Promise.all(rows.map((row) => serializeProject(db, row, req))))
     })
   )
 
   router.get(
     '/projects/:id',
-    wrap((req, res) => {
-      res.ok(serializeProject(db, findOrFail('projects', req.params.id), req))
+    wrap(async (req, res) => {
+      res.ok(await serializeProject(db, await findOrFail('projects', req.params.id), req))
     })
   )
 
@@ -680,13 +673,13 @@ module.exports = function createAdminRouter(db) {
           req.body[key] = normalizeUrl(req.body[key])
         }
       }
-      const { ok, errors, values } = validate(req.body, projectRules(false))
+      const { ok, errors, values } = await validate(req.body, projectRules(false))
       if (!ok) throw new ValidationError(errors)
 
       const slug =
         values.slug && String(values.slug).trim() !== ''
           ? values.slug
-          : uniqueSlug(db, 'projects', values.title)
+          : await uniqueSlug(db, 'projects', values.title)
 
       const columns = buildColumns(values, {
         json: ['tech_stack'],
@@ -695,12 +688,12 @@ module.exports = function createAdminRouter(db) {
       delete columns.slug
       columns.slug = slug
       columns.profile_id = null
-      const id = storeRow('projects', columns)
+      const id = await storeRow('projects', columns)
 
       const skillIds = Object.prototype.hasOwnProperty.call(req.body, 'skill_ids')
         ? req.body.skill_ids
         : []
-      syncProjectSkills(id, skillIds)
+      await syncProjectSkills(id, skillIds)
 
       const media = (req.uploads && req.uploads.media) || []
       validateProjectMedia(media)
@@ -709,37 +702,37 @@ module.exports = function createAdminRouter(db) {
       }
 
       cache.flush()
-      res.created(serializeProject(db, findOrFail('projects', id), req), 'Project created.')
+      res.created(await serializeProject(db, await findOrFail('projects', id), req), 'Project created.')
     })
   )
 
   router.put(
     '/projects/:id',
     wrap(async (req, res) => {
-      const existing = findOrFail('projects', req.params.id)
+      const existing = await findOrFail('projects', req.params.id)
       for (const key of ['repo_url', 'demo_url']) {
         if (Object.prototype.hasOwnProperty.call(req.body, key)) {
           req.body[key] = normalizeUrl(req.body[key])
         }
       }
-      const { ok, errors, values } = validate(req.body, projectRules(true))
+      const { ok, errors, values } = await validate(req.body, projectRules(true))
       if (!ok) throw new ValidationError(errors)
 
       if (Object.prototype.hasOwnProperty.call(values, 'slug')) {
         values.slug =
           values.slug && String(values.slug).trim() !== ''
             ? values.slug
-            : uniqueSlug(db, 'projects', values.title || existing.title, existing.id)
+            : await uniqueSlug(db, 'projects', values.title || existing.title, existing.id)
       }
 
       const columns = buildColumns(values, {
         json: ['tech_stack'],
         boolean: ['featured', 'is_active'],
       })
-      updateRow('projects', existing.id, columns)
+      await updateRow('projects', existing.id, columns)
 
       if (Object.prototype.hasOwnProperty.call(req.body, 'skill_ids')) {
-        syncProjectSkills(existing.id, req.body.skill_ids)
+        await syncProjectSkills(existing.id, req.body.skill_ids)
       }
 
       const media = (req.uploads && req.uploads.media) || []
@@ -749,17 +742,17 @@ module.exports = function createAdminRouter(db) {
       }
 
       cache.flush()
-      res.ok(serializeProject(db, findOrFail('projects', existing.id), req), 'Project updated.')
+      res.ok(await serializeProject(db, await findOrFail('projects', existing.id), req), 'Project updated.')
     })
   )
 
   router.delete(
     '/projects/:id',
-    wrap((req, res) => {
-      const existing = findOrFail('projects', req.params.id)
-      for (const media of mediaRows(db, 'Project', existing.id)) deleteMediaRow(db, media)
-      db.prepare('DELETE FROM project_skill WHERE project_id = ?').run(existing.id)
-      db.prepare('DELETE FROM projects WHERE id = ?').run(existing.id)
+    wrap(async (req, res) => {
+      const existing = await findOrFail('projects', req.params.id)
+      for (const media of await mediaRows(db, 'Project', existing.id)) await deleteMediaRow(db, media)
+      await db.run('DELETE FROM project_skill WHERE project_id = ?', existing.id)
+      await db.run('DELETE FROM projects WHERE id = ?', existing.id)
       cache.flush()
       res.noContent('Deleted')
     })
@@ -778,26 +771,25 @@ module.exports = function createAdminRouter(db) {
     tags: ['nullable', 'array'],
   }
 
-  function syncPostTags(postId, tags) {
+  async function syncPostTags(postId, tags) {
     const ids = []
-    const findOrCreate = db.prepare('SELECT id FROM post_tags WHERE slug = ?')
-    const insertTag = db.prepare('INSERT INTO post_tags (name, slug, created_at, updated_at) VALUES (?, ?, ?, ?)')
     for (const tag of Array.isArray(tags) ? tags : []) {
       const name = typeof tag === 'object' && tag !== null ? tag.name || tag.slug : tag
       if (!name) continue
       const slug = require('../lib/format').slugify(name)
       if (!slug) continue
-      let row = findOrCreate.get(slug)
+      let row = await db.get('SELECT id FROM post_tags WHERE slug = ?', slug)
       if (!row) {
         const now = isoNow()
-        insertTag.run(String(name), slug, now, now)
-        row = findOrCreate.get(slug)
+        await db.run('INSERT INTO post_tags (name, slug, created_at, updated_at) VALUES (?, ?, ?, ?)', String(name), slug, now, now)
+        row = await db.get('SELECT id FROM post_tags WHERE slug = ?', slug)
       }
       ids.push(row.id)
     }
-    db.prepare('DELETE FROM post_tag WHERE post_id = ?').run(postId)
-    const link = db.prepare('INSERT OR IGNORE INTO post_tag (post_id, post_tag_id) VALUES (?, ?)')
-    for (const id of ids) link.run(postId, id)
+    await db.run('DELETE FROM post_tag WHERE post_id = ?', postId)
+    for (const id of ids) {
+      await db.run('INSERT INTO post_tag (post_id, post_tag_id) VALUES (?, ?) ON CONFLICT DO NOTHING', postId, id)
+    }
   }
 
   function validatePostCover(file) {
@@ -813,29 +805,23 @@ module.exports = function createAdminRouter(db) {
 
   router.get(
     '/posts',
-    wrap((req, res) => {
-      res.ok(listRows('posts', req).map((row) => serializePost(db, row, req)))
+    wrap(async (req, res) => {
+      const rows = await listRows('posts', req)
+      res.ok(await Promise.all(rows.map((row) => serializePost(db, row, req))))
     })
   )
 
   router.get(
     '/posts/:id',
-    wrap((req, res) => {
-      res.ok(serializePost(db, findOrFail('posts', req.params.id), req))
+    wrap(async (req, res) => {
+      res.ok(await serializePost(db, await findOrFail('posts', req.params.id), req))
     })
   )
 
   router.post(
     '/posts',
     wrap(async (req, res) => {
-      const body = { ...req.body }
-      if (Object.prototype.hasOwnProperty.call(body, 'slug')) {
-        const slugRule = body.slug && String(body.slug).trim() !== ''
-          ? ['nullable', 'string', 'max:255', 'unique:posts,slug']
-          : ['nullable', 'string', 'max:255']
-        body.slug = slugRule
-      }
-      const { ok, errors, values } = validate(req.body, {
+      const { ok, errors, values } = await validate(req.body, {
         ...postRules,
         slug: ['nullable', 'string', 'max:255', 'unique:posts,slug'],
         cover: ['nullable'],
@@ -851,26 +837,26 @@ module.exports = function createAdminRouter(db) {
       columns.slug =
         values.slug && String(values.slug).trim() !== ''
           ? values.slug
-          : uniqueSlug(db, 'posts', values.title)
+          : await uniqueSlug(db, 'posts', values.title)
       columns.published_at = (values.status || 'draft') === 'published' ? isoNow() : null
-      const id = storeRow('posts', columns)
+      const id = await storeRow('posts', columns)
 
-      syncPostTags(id, Object.prototype.hasOwnProperty.call(req.body, 'tags') ? req.body.tags : [])
+      await syncPostTags(id, Object.prototype.hasOwnProperty.call(req.body, 'tags') ? req.body.tags : [])
 
       if (cover) {
         await storeUpload(db, { model_type: 'Post', model_id: id, collection_name: 'cover', file: cover })
       }
 
       cache.flush()
-      res.created(serializePost(db, findOrFail('posts', id), req), 'Post created.')
+      res.created(await serializePost(db, await findOrFail('posts', id), req), 'Post created.')
     })
   )
 
   router.put(
     '/posts/:id',
     wrap(async (req, res) => {
-      const existing = findOrFail('posts', req.params.id)
-      const { ok, errors, values } = validate(req.body, {
+      const existing = await findOrFail('posts', req.params.id)
+      const { ok, errors, values } = await validate(req.body, {
         title: ['sometimes', 'string', 'max:255'],
         body: ['sometimes', 'string'],
         slug: ['nullable', 'string', 'max:255', `unique:posts,slug,${existing.id}`],
@@ -892,32 +878,32 @@ module.exports = function createAdminRouter(db) {
         columns.slug =
           values.slug && String(values.slug).trim() !== ''
             ? values.slug
-            : uniqueSlug(db, 'posts', values.title || existing.title, existing.id)
+            : await uniqueSlug(db, 'posts', values.title || existing.title, existing.id)
       }
       if ((values.status || existing.status) === 'published' && !existing.published_at) {
         columns.published_at = isoNow()
       }
-      updateRow('posts', existing.id, columns)
+      await updateRow('posts', existing.id, columns)
 
-      syncPostTags(existing.id, Object.prototype.hasOwnProperty.call(req.body, 'tags') ? req.body.tags : [])
+      await syncPostTags(existing.id, Object.prototype.hasOwnProperty.call(req.body, 'tags') ? req.body.tags : [])
 
       if (cover) {
-        clearMediaCollection(db, 'Post', existing.id, 'cover')
+        await clearMediaCollection(db, 'Post', existing.id, 'cover')
         await storeUpload(db, { model_type: 'Post', model_id: existing.id, collection_name: 'cover', file: cover })
       }
 
       cache.flush()
-      res.ok(serializePost(db, findOrFail('posts', existing.id), req), 'Post updated.')
+      res.ok(await serializePost(db, await findOrFail('posts', existing.id), req), 'Post updated.')
     })
   )
 
   router.delete(
     '/posts/:id',
-    wrap((req, res) => {
-      const existing = findOrFail('posts', req.params.id)
-      for (const media of mediaRows(db, 'Post', existing.id)) deleteMediaRow(db, media)
-      db.prepare('DELETE FROM post_tag WHERE post_id = ?').run(existing.id)
-      db.prepare('DELETE FROM posts WHERE id = ?').run(existing.id)
+    wrap(async (req, res) => {
+      const existing = await findOrFail('posts', req.params.id)
+      for (const media of await mediaRows(db, 'Post', existing.id)) await deleteMediaRow(db, media)
+      await db.run('DELETE FROM post_tag WHERE post_id = ?', existing.id)
+      await db.run('DELETE FROM posts WHERE id = ?', existing.id)
       cache.flush()
       res.noContent('Deleted')
     })
@@ -927,27 +913,25 @@ module.exports = function createAdminRouter(db) {
 
   router.get(
     '/messages/stats',
-    wrap((req, res) => {
+    wrap(async (req, res) => {
+      const total = await db.get('SELECT COUNT(*)::int AS c FROM contact_messages')
+      const unread = await db.get('SELECT COUNT(*)::int AS c FROM contact_messages WHERE read_at IS NULL')
       res.ok({
-        total: db.prepare('SELECT COUNT(*) AS c FROM contact_messages').get().c,
-        unread: db
-          .prepare('SELECT COUNT(*) AS c FROM contact_messages WHERE read_at IS NULL')
-          .get().c,
+        total: total.c,
+        unread: unread.c,
       })
     })
   )
 
   router.get(
     '/messages',
-    wrap((req, res) => {
+    wrap(async (req, res) => {
       const perPage = 20
       const page = Math.max(1, parseInt(req.query.page || '1', 10) || 1)
       const unread = toBoolean(req.query.unread)
       const where = unread ? 'WHERE read_at IS NULL' : ''
-      const total = db.prepare(`SELECT COUNT(*) AS c FROM contact_messages ${where}`).get().c
-      const rows = db
-        .prepare(`SELECT * FROM contact_messages ${where} ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`)
-        .all(perPage, (page - 1) * perPage)
+      const total = (await db.get(`SELECT COUNT(*)::int AS c FROM contact_messages ${where}`)).c
+      const rows = await db.all(`SELECT * FROM contact_messages ${where} ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`, perPage, (page - 1) * perPage)
       res.ok(rows.map(serializeContactMessage), 'OK', {
         pagination: {
           current_page: page,
@@ -961,29 +945,25 @@ module.exports = function createAdminRouter(db) {
 
   router.get(
     '/messages/:id',
-    wrap((req, res) => {
-      res.ok(serializeContactMessage(findOrFail('contact_messages', req.params.id)))
+    wrap(async (req, res) => {
+      res.ok(serializeContactMessage(await findOrFail('contact_messages', req.params.id)))
     })
   )
 
   router.post(
     '/messages/:id/read',
-    wrap((req, res) => {
-      const row = findOrFail('contact_messages', req.params.id)
-      db.prepare('UPDATE contact_messages SET read_at = ?, updated_at = ? WHERE id = ?').run(
-        row.read_at || isoNow(),
-        isoNow(),
-        row.id
-      )
-      res.ok(serializeContactMessage(findOrFail('contact_messages', row.id)), 'Marked as read.')
+    wrap(async (req, res) => {
+      const row = await findOrFail('contact_messages', req.params.id)
+      await db.run('UPDATE contact_messages SET read_at = ?, updated_at = ? WHERE id = ?', row.read_at || isoNow(), isoNow(), row.id)
+      res.ok(serializeContactMessage(await findOrFail('contact_messages', row.id)), 'Marked as read.')
     })
   )
 
   router.delete(
     '/messages/:id',
-    wrap((req, res) => {
-      const row = findOrFail('contact_messages', req.params.id)
-      db.prepare('DELETE FROM contact_messages WHERE id = ?').run(row.id)
+    wrap(async (req, res) => {
+      const row = await findOrFail('contact_messages', req.params.id)
+      await db.run('DELETE FROM contact_messages WHERE id = ?', row.id)
       res.noContent('Deleted')
     })
   )
@@ -992,25 +972,26 @@ module.exports = function createAdminRouter(db) {
 
   router.get(
     '/feedback/stats',
-    wrap((req, res) => {
-      const avg = db.prepare('SELECT AVG(rating) AS avg FROM feedback').get().avg
+    wrap(async (req, res) => {
+      const avg = await db.get('SELECT AVG(rating)::numeric AS avg FROM feedback')
+      const total = await db.get('SELECT COUNT(*)::int AS c FROM feedback')
+      const unread = await db.get('SELECT COUNT(*)::int AS c FROM feedback WHERE read_at IS NULL')
+      const categories = await db.all(
+        `SELECT category, COUNT(*)::int AS total FROM feedback
+         WHERE category IS NOT NULL GROUP BY category ORDER BY total DESC LIMIT 8`
+      )
       res.ok({
-        total: db.prepare('SELECT COUNT(*) AS c FROM feedback').get().c,
-        unread: db.prepare('SELECT COUNT(*) AS c FROM feedback WHERE read_at IS NULL').get().c,
-        avg_rating: Math.round((Number(avg) || 0) * 10) / 10,
-        categories: db
-          .prepare(
-            `SELECT category, COUNT(*) AS total FROM feedback
-             WHERE category IS NOT NULL GROUP BY category ORDER BY total DESC LIMIT 8`
-          )
-          .all(),
+        total: total.c,
+        unread: unread.c,
+        avg_rating: Math.round((Number(avg.avg) || 0) * 10) / 10,
+        categories,
       })
     })
   )
 
   router.get(
     '/feedback',
-    wrap((req, res) => {
+    wrap(async (req, res) => {
       const perPage = 20
       const page = Math.max(1, parseInt(req.query.page || '1', 10) || 1)
       const clauses = []
@@ -1021,10 +1002,8 @@ module.exports = function createAdminRouter(db) {
         params.push(req.query.category)
       }
       const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : ''
-      const total = db.prepare(`SELECT COUNT(*) AS c FROM feedback ${where}`).get(...params).c
-      const rows = db
-        .prepare(`SELECT * FROM feedback ${where} ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`)
-        .all(...params, perPage, (page - 1) * perPage)
+      const total = (await db.get(`SELECT COUNT(*)::int AS c FROM feedback ${where}`, ...params)).c
+      const rows = await db.all(`SELECT * FROM feedback ${where} ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`, ...params, perPage, (page - 1) * perPage)
       res.ok(rows.map(serializeFeedback), 'OK', {
         pagination: {
           current_page: page,
@@ -1038,29 +1017,25 @@ module.exports = function createAdminRouter(db) {
 
   router.get(
     '/feedback/:id',
-    wrap((req, res) => {
-      res.ok(serializeFeedback(findOrFail('feedback', req.params.id)))
+    wrap(async (req, res) => {
+      res.ok(serializeFeedback(await findOrFail('feedback', req.params.id)))
     })
   )
 
   router.post(
     '/feedback/:id/read',
-    wrap((req, res) => {
-      const row = findOrFail('feedback', req.params.id)
-      db.prepare('UPDATE feedback SET read_at = ?, updated_at = ? WHERE id = ?').run(
-        row.read_at || isoNow(),
-        isoNow(),
-        row.id
-      )
-      res.ok(serializeFeedback(findOrFail('feedback', row.id)), 'Marked as read.')
+    wrap(async (req, res) => {
+      const row = await findOrFail('feedback', req.params.id)
+      await db.run('UPDATE feedback SET read_at = ?, updated_at = ? WHERE id = ?', row.read_at || isoNow(), isoNow(), row.id)
+      res.ok(serializeFeedback(await findOrFail('feedback', row.id)), 'Marked as read.')
     })
   )
 
   router.delete(
     '/feedback/:id',
-    wrap((req, res) => {
-      const row = findOrFail('feedback', req.params.id)
-      db.prepare('DELETE FROM feedback WHERE id = ?').run(row.id)
+    wrap(async (req, res) => {
+      const row = await findOrFail('feedback', req.params.id)
+      await db.run('DELETE FROM feedback WHERE id = ?', row.id)
       res.noContent('Deleted')
     })
   )
@@ -1069,9 +1044,10 @@ module.exports = function createAdminRouter(db) {
 
   router.get(
     '/settings',
-    wrap((req, res) => {
+    wrap(async (req, res) => {
+      const rows = await db.all('SELECT * FROM settings')
       const grouped = {}
-      for (const row of db.prepare('SELECT * FROM settings').all()) {
+      for (const row of rows) {
         const group = row.group || 'general'
         if (!grouped[group]) grouped[group] = []
         grouped[group].push({
@@ -1087,8 +1063,8 @@ module.exports = function createAdminRouter(db) {
 
   router.put(
     '/settings',
-    wrap((req, res) => {
-      const { ok, errors, values } = validate(req.body, {
+    wrap(async (req, res) => {
+      const { ok, errors, values } = await validate(req.body, {
         settings: ['required', 'array'],
       })
       if (!ok) throw new ValidationError(errors)
@@ -1102,21 +1078,11 @@ module.exports = function createAdminRouter(db) {
         const stored = typeof rawValue === 'object' ? JSON.stringify(rawValue) : String(rawValue)
         const group = item.group || 'general'
         const isPublic = toBoolean(item.is_public) ? 1 : 0
-        const existing = db.prepare('SELECT id FROM settings WHERE key = ?').get(item.key)
+        const existing = await db.get('SELECT id FROM settings WHERE key = ?', item.key)
         if (existing) {
-          db.prepare('UPDATE settings SET value = ?, "group" = ?, is_public = ? WHERE id = ?').run(
-            stored,
-            group,
-            isPublic,
-            existing.id
-          )
+          await db.run('UPDATE settings SET value = ?, "group" = ?, is_public = ? WHERE id = ?', stored, group, isPublic, existing.id)
         } else {
-          db.prepare('INSERT INTO settings (key, value, "group", is_public) VALUES (?, ?, ?, ?)').run(
-            item.key,
-            stored,
-            group,
-            isPublic
-          )
+          await db.run('INSERT INTO settings (key, value, "group", is_public) VALUES (?, ?, ?, ?) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, "group" = EXCLUDED."group", is_public = EXCLUDED.is_public', item.key, stored, group, isPublic)
         }
       }
 
@@ -1129,20 +1095,18 @@ module.exports = function createAdminRouter(db) {
 
   router.get(
     '/media',
-    wrap((req, res) => {
+    wrap(async (req, res) => {
       const perPage = 24
       const page = Math.max(1, parseInt(req.query.page || '1', 10) || 1)
       const search = String(req.query.search || '').trim()
       let where = ''
       const params = []
       if (search !== '') {
-        where = 'WHERE name LIKE ? OR file_name LIKE ?'
+        where = 'WHERE name ILIKE ? OR file_name ILIKE ?'
         params.push(`%${search}%`, `%${search}%`)
       }
-      const total = db.prepare(`SELECT COUNT(*) AS c FROM media ${where}`).get(...params).c
-      const rows = db
-        .prepare(`SELECT * FROM media ${where} ORDER BY id DESC LIMIT ? OFFSET ?`)
-        .all(...params, perPage, (page - 1) * perPage)
+      const total = (await db.get(`SELECT COUNT(*)::int AS c FROM media ${where}`, ...params)).c
+      const rows = await db.all(`SELECT * FROM media ${where} ORDER BY id DESC LIMIT ? OFFSET ?`, ...params, perPage, (page - 1) * perPage)
 
       const items = rows.map((media) => ({
         id: media.id,
@@ -1181,7 +1145,7 @@ module.exports = function createAdminRouter(db) {
         return res.error('Upload failed.', 422)
       }
 
-      db.prepare('INSERT OR IGNORE INTO media_libraries (id) VALUES (1)').run()
+      await db.run('INSERT INTO media_libraries (id, created_at, updated_at) VALUES (1, ?, ?) ON CONFLICT (id) DO NOTHING', isoNow(), isoNow())
       const media = await storeUpload(db, {
         model_type: 'MediaLibrary',
         model_id: 1,
@@ -1206,9 +1170,9 @@ module.exports = function createAdminRouter(db) {
 
   router.delete(
     '/media/:id',
-    wrap((req, res) => {
-      const media = findOrFail('media', req.params.id)
-      deleteMediaRow(db, media)
+    wrap(async (req, res) => {
+      const media = await findOrFail('media', req.params.id)
+      await deleteMediaRow(db, media)
       cache.flush()
       res.noContent('Deleted')
     })
