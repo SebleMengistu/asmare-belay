@@ -7,6 +7,12 @@ const { seedIfEmpty } = require('./lib/seed')
 const { createApp } = require('./app')
 
 async function bootstrap() {
+  try {
+    const parsed = new URL(config.databaseUrl)
+    console.log(`[boot] db: ${parsed.host}${config.dbSsl ? ' (ssl)' : ''}`)
+  } catch {
+    console.log(`[boot] db: <invalid DATABASE_URL="${config.databaseUrl}">`)
+  }
   await db.exec(SCHEMA)
   const seeded = await seedIfEmpty()
   if (seeded.seeded) {
@@ -38,6 +44,6 @@ async function bootstrap() {
 }
 
 bootstrap().catch((error) => {
-  console.error('[boot] failed:', error && error.message)
+  console.error('[boot] failed:', error)
   process.exit(1)
 })
