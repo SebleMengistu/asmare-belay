@@ -13,13 +13,19 @@ const http = axios.create({
 const cache = new Map()
 const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
+function shouldCache(config) {
+  const url = String(config.url || '')
+  const hasToken = Boolean(localStorage.getItem('tefera_token'))
+  return config.method === 'get' && !hasToken && !url.includes('/admin') && url !== '/' && !url.startsWith('/projects')
+}
+
 http.interceptors.request.use((config) => {
   // Attach Bearer token for authenticated requests.
   const token = localStorage.getItem('tefera_token')
   if (token) config.headers.Authorization = `Bearer ${token}`
 
   // Only cache public (unauthenticated) GETs — skip admin routes.
-  if (config.method === 'get' && !token && !config.url.includes('/admin')) {
+  if (shouldCache(config)) {
     const key = config.url + (config.params ? JSON.stringify(config.params) : '')
     const cached = cache.get(key)
     if (cached && Date.now() - cached.ts < CACHE_TTL) {
@@ -42,7 +48,7 @@ http.interceptors.response.use(
   (res) => {
     // Store successful public GET responses in the cache.
     const cfg = res.config
-    if (cfg.method === 'get' && !localStorage.getItem('tefera_token') && !cfg.url.includes('/admin')) {
+    if (shouldCache(cfg)) {
       const key = cfg.url + (cfg.params ? JSON.stringify(cfg.params) : '')
       cache.set(key, { data: res.data, ts: Date.now() })
     }
