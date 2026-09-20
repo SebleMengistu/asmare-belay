@@ -77,20 +77,15 @@ module.exports = function createPublicRouter(db) {
             'SELECT * FROM projects WHERE (profile_id = ? OR profile_id IS NULL) AND featured = TRUE AND is_active = TRUE ORDER BY display_order, created_at DESC',
             profile.id
           )
-          const slotLimit = 6
-          const remaining = slotLimit - featuredRows.length
-          let fillRows = []
-          if (remaining > 0) {
-            const fillParams = featuredRows.length > 0 ? [profile.id, ...featuredRows.map((row) => row.id), remaining] : [profile.id, remaining]
-            fillRows = await db.all(
-              featuredRows.length > 0
-                ? 'SELECT * FROM projects WHERE (profile_id = ? OR profile_id IS NULL) AND is_active = TRUE AND id NOT IN (' +
-                    featuredRows.map(() => '?').join(', ') +
-                    ') ORDER BY display_order, created_at DESC LIMIT ?'
-                : 'SELECT * FROM projects WHERE (profile_id = ? OR profile_id IS NULL) AND is_active = TRUE ORDER BY display_order, created_at DESC LIMIT ?',
-              ...fillParams
-            )
-          }
+          const fillParams = featuredRows.length > 0 ? [profile.id, ...featuredRows.map((row) => row.id)] : [profile.id]
+          const fillRows = await db.all(
+            featuredRows.length > 0
+              ? 'SELECT * FROM projects WHERE (profile_id = ? OR profile_id IS NULL) AND is_active = TRUE AND id NOT IN (' +
+                  featuredRows.map(() => '?').join(', ') +
+                  ') ORDER BY display_order, created_at DESC'
+              : 'SELECT * FROM projects WHERE (profile_id = ? OR profile_id IS NULL) AND is_active = TRUE ORDER BY display_order, created_at DESC',
+            ...fillParams
+          )
           const rows = featuredRows.concat(fillRows)
           return Promise.all(rows.map((row) => serializeProject(db, row, req)))
         },
