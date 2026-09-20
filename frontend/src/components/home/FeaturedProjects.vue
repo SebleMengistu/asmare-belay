@@ -8,9 +8,8 @@ const props = defineProps({
   loading: { type: Boolean, default: false },
 })
 
-// The responsive grid provides the space limit; do not hide active projects
-// with an arbitrary item count.
-const items = computed(() => props.projects)
+// Keep the homepage focused; the full catalog is available on /projects.
+const items = computed(() => props.projects.slice(0, 4))
 
 function screenshotOf(project) {
   return project?.screenshots?.[0]?.card || project?.screenshots?.[0]?.url || ''
@@ -33,7 +32,7 @@ function monogramOf(project) {
           to="/projects"
           class="inline-flex items-center gap-1 text-sm font-semibold text-brand-600 transition hover:gap-2 dark:text-brand-400"
         >
-          View All Projects <span aria-hidden="true">→</span>
+          See more <span aria-hidden="true">→</span>
         </RouterLink>
       </div>
 
