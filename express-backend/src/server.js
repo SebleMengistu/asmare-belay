@@ -14,6 +14,8 @@ async function bootstrap() {
     console.log(`[boot] db: <invalid DATABASE_URL="${config.databaseUrl}">`)
   }
   await db.exec(SCHEMA)
+  // Existing databases need the durable upload column added without a reset.
+  await db.exec("ALTER TABLE media ADD COLUMN IF NOT EXISTS file_data BYTEA")
   const seeded = await seedIfEmpty()
   if (seeded.seeded) {
     console.log('[boot] database was empty — seeded an admin account + starter profile')
