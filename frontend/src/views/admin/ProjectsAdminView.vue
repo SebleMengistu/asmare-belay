@@ -222,7 +222,14 @@ onMounted(() => {
         <td class="px-4 py-3 text-right whitespace-nowrap">
           <button type="button" class="font-semibold text-brand-600 hover:text-brand-800" @click="openEdit(row)">Edit</button>
           <span class="px-1 text-slate-300">|</span>
-          <button type="button" class="font-medium text-red-600 hover:text-red-800" @click="remove(row)">Delete</button>
+          <button
+            type="button"
+            class="font-medium text-red-600 hover:text-red-800 disabled:cursor-wait disabled:opacity-50"
+            :disabled="removingId === row.id"
+            @click="remove(row)"
+          >
+            {{ removingId === row.id ? 'Deleting…' : 'Delete' }}
+          </button>
         </td>
       </tr>
     </tbody>
@@ -234,7 +241,7 @@ onMounted(() => {
 </p>
     <Teleport to="body">
   <div v-if="showForm" class="fixed inset-0 z-50 overflow-y-auto bg-black/40 p-4" @click.self="showForm = false">
-    <form novalidate class="mx-auto w-full max-w-xl space-y-4 rounded-xl bg-white p-6 shadow-lg" @submit.prevent="submit">
+    <form novalidate class="mx-auto w-full max-w-xl space-y-4 rounded-xl bg-white p-6 shadow-lg" @submit.prevent.stop="submit">
       <div class="flex items-center justify-between">
         <h2 class="text-lg font-bold text-slate-900">{{ form.id ? 'Edit project' : 'New project' }}</h2>
         <button type="button" class="text-xl leading-none text-slate-400 hover:text-slate-700" @click="showForm = false">×</button>
