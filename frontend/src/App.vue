@@ -110,7 +110,7 @@
       <Transition name="drawer">
         <nav v-if="menuOpen" class="border-t border-white/10 bg-navy-900 px-4 pb-4 pt-2 lg:hidden">
           <template v-for="item in nav" :key="'m-' + item.label">
-            <!-- Dropdown group Ã¢ÂÂ rendered as an accordion -->
+            <!-- Dropdown group — rendered as an accordion -->
             <div v-if="item.children">
               <button
                 type="button"
