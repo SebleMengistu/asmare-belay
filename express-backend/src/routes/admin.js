@@ -17,6 +17,7 @@ const {
   sqliteToIso,
 } = require('../lib/format')
 const { requireAuth, requireAdmin } = require('../lib/auth')
+const { syncGithubProjects } = require('../lib/github')
 const {
   serializeSkill,
   serializeExperience,
@@ -720,6 +721,15 @@ module.exports = function createAdminRouter(db) {
     wrap(async (req, res) => {
       const rows = await listRows('projects', req)
       res.ok(await Promise.all(rows.map((row) => serializeProject(db, row, req))))
+    })
+  )
+
+  router.post(
+    '/projects/sync-github',
+    wrap(async (req, res) => {
+      const result = await syncGithubProjects(db, { force: req.body.force === true })
+      cache.flush()
+      res.ok(result, result.created ? `Imported ${result.created} GitHub project${result.created === 1 ? '' : 's'}.` : 'GitHub projects are already up to date.')
     })
   )
 
