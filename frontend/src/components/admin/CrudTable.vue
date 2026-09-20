@@ -216,7 +216,8 @@ const form = reactive({})
 function blankRow() {
   const blank = {}
   for (const f of props.config.fields) {
-    if (f.type === 'boolean') blank[f.key] = false
+    if (Object.prototype.hasOwnProperty.call(f, 'default')) blank[f.key] = f.default
+    else if (f.type === 'boolean') blank[f.key] = false
     else blank[f.key] = ''
   }
   return blank
