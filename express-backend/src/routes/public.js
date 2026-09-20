@@ -7,6 +7,7 @@ const cache = require('../lib/cache')
 const config = require('../config')
 const { wrap, ValidationError, NotFoundError, ApiError } = require('../lib/respond')
 const { createValidator } = require('../lib/validate')
+const { syncGithubProjects } = require('../lib/github')
 const { toDateString, toIso, sqliteToIso, isoNow, diffInYears } = require('../lib/format')
 const {
   serializeSkill,
@@ -187,6 +188,12 @@ module.exports = function createPublicRouter(db) {
   router.get(
     '/projects',
     wrap(async (req, res) => {
+      try {
+        await syncGithubProjects(db)
+      } catch (error) {
+        console.error('[github] project sync failed:', error.message)
+      }
+
       const category = req.query.category || '_all'
       const payload = await cache.remember(
         'projects',
