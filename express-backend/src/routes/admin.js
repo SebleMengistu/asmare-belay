@@ -138,6 +138,13 @@ module.exports = function createAdminRouter(db) {
     return columns
   }
 
+  function applyDefaults(columns, cfg) {
+    for (const [key, value] of Object.entries(cfg.defaults || {})) {
+      if (columns[key] === null || columns[key] === undefined) columns[key] = value
+    }
+    return columns
+  }
+
   /* ------------------------------------------------------------- dashboard */
 
   router.get(
@@ -468,6 +475,7 @@ module.exports = function createAdminRouter(db) {
       serialize: serializeExperience,
       profileScoped: true,
       normalize: ['company_url'],
+      defaults: { current: false, display_order: 0, is_active: true },
       rules: () => ({
         title: ['required', 'string', 'max:255'],
         company: ['required', 'string', 'max:255'],
@@ -614,7 +622,7 @@ module.exports = function createAdminRouter(db) {
         const { ok, errors, values } = await validate(req.body, cfg.rules(false))
         if (!ok) throw new ValidationError(errors)
 
-        const columns = buildColumns(values, cfg.columns)
+        const columns = applyDefaults(buildColumns(values, cfg.columns), cfg)
         if (cfg.profileScoped && (await db.hasColumn(cfg.table, 'profile_id'))) {
           columns.profile_id = await firstProfileId()
         }
@@ -643,7 +651,7 @@ module.exports = function createAdminRouter(db) {
       const { ok, errors, values } = await validate(req.body, cfg.rules(true))
       if (!ok) throw new ValidationError(errors)
 
-      const columns = buildColumns(values, cfg.columns)
+      const columns = applyDefaults(buildColumns(values, cfg.columns), cfg)
       if (await db.hasColumn(cfg.table, 'slug')) {
         const base =
           values.slug && String(values.slug).trim() !== '' ? values.slug : values.title || existing.title
