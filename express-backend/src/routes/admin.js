@@ -688,11 +688,15 @@ module.exports = function createAdminRouter(db) {
       delete columns.slug
       columns.slug = slug
       columns.profile_id = null
+      // New projects are shown on the home page by default; editors can still
+      // uncheck "featured" afterward if they only want it on the /projects list.
+      columns.featured = true
       const id = await storeRow('projects', columns)
 
       const skillIds = Object.prototype.hasOwnProperty.call(req.body, 'skill_ids')
         ? req.body.skill_ids
         : []
+
       await syncProjectSkills(id, skillIds)
 
       const media = (req.uploads && req.uploads.media) || []
