@@ -10,15 +10,20 @@ const props = defineProps({
 
 // Keep the homepage focused; the full catalog is available on /projects.
 const items = computed(() => props.projects.slice(0, 4))
-const failedImages = ref(new Set())
+const imageIndexes = ref(new Map())
 
 function screenshotOf(project) {
-  if (failedImages.value.has(project?.id)) return ''
-  return project?.screenshots?.[0]?.card || project?.screenshots?.[0]?.url || ''
+  const screenshots = project?.screenshots || []
+  const index = imageIndexes.value.get(project?.id) || 0
+  return screenshots[index]?.card || screenshots[index]?.url || ''
 }
 
 function markImageFailed(project) {
-  failedImages.value = new Set([...failedImages.value, project.id])
+  const screenshots = project?.screenshots || []
+  const next = new Map(imageIndexes.value)
+  const current = next.get(project.id) || 0
+  next.set(project.id, current < screenshots.length - 1 ? current + 1 : screenshots.length)
+  imageIndexes.value = next
 }
 
 function monogramOf(project) {
