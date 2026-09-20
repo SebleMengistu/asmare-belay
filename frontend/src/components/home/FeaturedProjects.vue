@@ -8,7 +8,9 @@ const props = defineProps({
   loading: { type: Boolean, default: false },
 })
 
-const items = computed(() => props.projects.slice(0, 8))
+// The responsive grid provides the space limit; do not hide active projects
+// with an arbitrary item count.
+const items = computed(() => props.projects)
 
 function screenshotOf(project) {
   return project?.screenshots?.[0]?.card || project?.screenshots?.[0]?.url || ''
