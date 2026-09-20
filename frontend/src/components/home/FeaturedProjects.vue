@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { categoryLabel, monogram, stackOf } from '../../utils/format'
 
@@ -10,9 +10,15 @@ const props = defineProps({
 
 // Keep the homepage focused; the full catalog is available on /projects.
 const items = computed(() => props.projects.slice(0, 4))
+const failedImages = ref(new Set())
 
 function screenshotOf(project) {
+  if (failedImages.value.has(project?.id)) return ''
   return project?.screenshots?.[0]?.card || project?.screenshots?.[0]?.url || ''
+}
+
+function markImageFailed(project) {
+  failedImages.value = new Set([...failedImages.value, project.id])
 }
 
 function monogramOf(project) {
@@ -32,7 +38,7 @@ function monogramOf(project) {
           to="/projects"
           class="inline-flex items-center gap-1 text-sm font-semibold text-brand-600 transition hover:gap-2 dark:text-brand-400"
         >
-          See more <span aria-hidden="true">→</span>
+          See more <span aria-hidden="true">â</span>
         </RouterLink>
       </div>
 
@@ -51,7 +57,7 @@ function monogramOf(project) {
         v-else-if="!items.length"
         class="mt-10 rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center text-sm text-slate-400 dark:border-white/10"
       >
-        No featured projects yet — publish some from the admin panel.
+        No featured projects yet â publish some from the admin panel.
       </p>
 
       <div v-else class="mt-10 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
@@ -67,6 +73,7 @@ function monogramOf(project) {
               :alt="`Screenshot of ${project.title}`"
               loading="lazy"
               class="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+              @error="markImageFailed(project)"
             />
             <div
               v-else
@@ -94,7 +101,7 @@ function monogramOf(project) {
               {{ project.summary }}
             </p>
             <p class="mt-4 text-xs font-medium text-slate-400 dark:text-slate-500">
-              {{ stackOf(project.tech_stack).slice(0, 4).join('  •  ') }}
+              {{ stackOf(project.tech_stack).slice(0, 4).join('  â¢  ') }}
             </p>
           </div>
         </article>
