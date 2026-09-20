@@ -17,7 +17,7 @@ services:
       - key: APP_URL
         sync: false
       - key: FRONTEND_URL
-        value: https://tefera-portfolio-node.vercel.app
+        value: https://tefe-alas-portal.vercel.app
       # Postgres / Supabase connection string — set this manually in Render
       # (Dashboard -> Environment) or when importing the blueprint.
       - key: DATABASE_URL
