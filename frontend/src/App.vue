@@ -247,8 +247,8 @@
 
       <div class="border-t border-white/5 py-5">
         <div class="container-site flex flex-col items-center justify-between gap-2 text-xs text-slate-500 sm:flex-row">
-          <span>ÃÂ© {{ new Date().getFullYear() }} Tefera Alagaw. All rights reserved.</span>
-          <span>Built with Laravel ÃÂ· Vue ÃÂ· PostgreSQL</span>
+          <span>© {{ new Date().getFullYear() }} Tefera Alagaw. All rights reserved.</span>
+          <span>Built with Laravel · Vue · PostgreSQL</span>
         </div>
       </div>
     </footer>
