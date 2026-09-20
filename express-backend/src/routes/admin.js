@@ -744,7 +744,7 @@ module.exports = function createAdminRouter(db) {
       })
       delete columns.slug
       columns.slug = slug
-      columns.profile_id = null
+      columns.profile_id = await firstProfileId()
       // New projects are shown on the home page by default; editors can still
       // uncheck "featured" afterward if they only want it on the /projects list.
       columns.featured = true
