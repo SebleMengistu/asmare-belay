@@ -66,4 +66,7 @@ module.exports = {
   adminEmail: process.env.ADMIN_EMAIL || 'admin@tefera.dev',
   adminName: process.env.ADMIN_NAME || 'TEFERA Admin',
   adminPassword: process.env.ADMIN_PASSWORD || 'change-me-now',
+  telegramEnabled: String(process.env.CONTACT_NOTIFY_TELEGRAM || 'false').toLowerCase() === 'true',
+  telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || '',
+  telegramChatId: process.env.TELEGRAM_CHAT_ID || '',
 }
