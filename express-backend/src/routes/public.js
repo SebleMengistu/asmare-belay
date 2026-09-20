@@ -8,6 +8,7 @@ const config = require('../config')
 const { wrap, ValidationError, NotFoundError, ApiError } = require('../lib/respond')
 const { createValidator } = require('../lib/validate')
 const { syncGithubProjects } = require('../lib/github')
+const { contactMessageText, feedbackText, sendTelegramMessage } = require('../lib/telegram')
 const { toDateString, toIso, sqliteToIso, isoNow, diffInYears } = require('../lib/format')
 const {
   serializeSkill,
@@ -442,6 +443,13 @@ module.exports = function createPublicRouter(db) {
         now
       )
 
+      try {
+        await sendTelegramMessage(contactMessageText(values))
+      } catch (error) {
+        // Keep the form reliable even if Telegram is temporarily unavailable.
+        console.error('[telegram] contact notification failed:', error.message)
+      }
+
       res.created(null, 'Message received. Thank you for reaching out!')
     })
   )
@@ -472,6 +480,13 @@ module.exports = function createPublicRouter(db) {
         now,
         now
       )
+
+      try {
+        await sendTelegramMessage(feedbackText(values))
+      } catch (error) {
+        // Keep the feedback saved even if Telegram is temporarily unavailable.
+        console.error('[telegram] feedback notification failed:', error.message)
+      }
 
       res.created(null, 'Thank you for your feedback!')
     })
