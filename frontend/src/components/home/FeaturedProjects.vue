@@ -14,15 +14,15 @@ const imageIndexes = ref(new Map())
 
 function screenshotOf(project) {
   const screenshots = project?.screenshots || []
-  const index = imageIndexes.value.get(project?.id) || 0
+  const index = imageIndexes.value.get(project?.id) ?? screenshots.length - 1
   return screenshots[index]?.card || screenshots[index]?.url || ''
 }
 
 function markImageFailed(project) {
   const screenshots = project?.screenshots || []
   const next = new Map(imageIndexes.value)
-  const current = next.get(project.id) || 0
-  next.set(project.id, current < screenshots.length - 1 ? current + 1 : screenshots.length)
+  const current = next.get(project.id) ?? screenshots.length - 1
+  next.set(project.id, current > 0 ? current - 1 : screenshots.length)
   imageIndexes.value = next
 }
 
