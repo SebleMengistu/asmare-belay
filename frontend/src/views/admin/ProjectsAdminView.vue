@@ -4,6 +4,7 @@ import http from '../../api/http'
 
 const loading = ref(true)
 const saving = ref(false)
+const syncing = ref(false)
 const error = ref('')
 const savedNotice = ref('')
 const fieldErrors = ref({})
@@ -170,9 +171,25 @@ async function remove(row) {
   }
 }
 
+async function syncGithub(force = false) {
+  syncing.value = true
+  error.value = ''
+  savedNotice.value = ''
+  try {
+    const res = await http.post('/admin/projects/sync-github', force ? { force: true } : {})
+    savedNotice.value = res.message || 'GitHub projects are up to date.'
+    await load()
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    syncing.value = false
+  }
+}
+
 onMounted(() => {
   load()
   loadSkills()
+  syncGithub()
 })
 </script>
 
@@ -183,13 +200,23 @@ onMounted(() => {
     <h1 class="text-2xl font-bold tracking-tight text-slate-900">Projects</h1>
     <p class="text-sm text-slate-500">{{ rows.length }} total.</p>
   </div>
-  <button
-    type="button"
-    class="btn-primary"
-    @click="openCreate"
-  >
-    + New project
-  </button>
+   <div class="flex flex-wrap gap-2">
+   <button
+     type="button"
+     class="btn-primary"
+     @click="openCreate"
+   >
+     + New project
+   </button>
+   <button
+     type="button"
+     class="rounded-md border border-brand-200 px-3 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50 disabled:cursor-wait disabled:opacity-50"
+     :disabled="syncing"
+     @click="syncGithub(true)"
+   >
+     {{ syncing ? 'Syncing GitHub…' : 'Sync GitHub' }}
+   </button>
+   </div>
 </header>
 
 <div v-if="savedNotice" class="rounded-lg bg-emerald-50 p-4 text-sm text-emerald-700">{{ savedNotice }}</div>
