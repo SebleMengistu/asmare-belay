@@ -38,7 +38,7 @@ function monogramOf(project) {
           to="/projects"
           class="inline-flex items-center gap-1 text-sm font-semibold text-brand-600 transition hover:gap-2 dark:text-brand-400"
         >
-          See more <span aria-hidden="true">â</span>
+          See more <span aria-hidden="true">→</span>
         </RouterLink>
       </div>
 
