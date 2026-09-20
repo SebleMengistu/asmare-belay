@@ -200,6 +200,8 @@ async function removeProfile() {
     deleting.value = false
   }
 }
+
+onMounted(load)
 </script>
 
 <template>
