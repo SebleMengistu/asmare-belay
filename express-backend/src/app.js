@@ -101,9 +101,14 @@ function createApp(db) {
   app.disable('x-powered-by')
 
   const allowedOrigins = new Set(
-    [config.frontendUrl, config.appUrl, 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'].filter(
-      Boolean
-    )
+    [
+      config.frontendUrl,
+      config.appUrl,
+      'https://tefe-alas-portal.vercel.app',
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:5175',
+    ].filter(Boolean)
   )
 
   app.use(

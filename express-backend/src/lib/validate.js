@@ -130,7 +130,9 @@ function createValidator(db) {
           }
 
           case 'array':
-            if (!Array.isArray(value)) {
+            // Laravel semantics: an associative array (`meta[key]=value`
+            // multipart fields parse to a plain object) is a valid "array".
+            if (!Array.isArray(value) && !isPlainObject(value)) {
               fieldErrors.push(`The ${attr} must be an array.`)
             }
             break

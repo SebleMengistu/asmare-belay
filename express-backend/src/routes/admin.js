@@ -9,6 +9,7 @@ const {
   toInt,
   toFloat,
   toJsonColumn,
+  isPlainObject,
   normalizeUrl,
   uniqueSlug,
   isoNow,
@@ -305,28 +306,32 @@ module.exports = function createAdminRouter(db) {
     })
   )
 
-  const updateProfile = wrap(async (req, res) => {
-    const profile = await findOrFail('profiles', req.params.id)
+  const PROFILE_RULES = {
+    first_name: ['nullable', 'string', 'max:255'],
+    last_name: ['nullable', 'string', 'max:255'],
+    display_name: ['nullable', 'string', 'max:255'],
+    headline: ['nullable', 'string', 'max:255'],
+    tagline: ['nullable', 'string', 'max:500'],
+    bio: ['nullable', 'string'],
+    location: ['nullable', 'string', 'max:255'],
+    website: ['nullable', 'url', 'max:255'],
+    email_public: ['nullable', 'email', 'max:255'],
+    phone: ['nullable', 'string', 'max:32'],
+    github: ['nullable', 'url', 'max:255'],
+    linkedin: ['nullable', 'url', 'max:255'],
+    twitter: ['nullable', 'url', 'max:255'],
+    whatsapp: ['nullable', 'string', 'max:32'],
+    roles: ['nullable', 'array'],
+    available_for_work: ['nullable', 'boolean'],
+    meta: ['nullable', 'array'],
+  }
 
-    const { ok, errors, values } = await validate(req.body, {
-      first_name: ['nullable', 'string', 'max:255'],
-      last_name: ['nullable', 'string', 'max:255'],
-      display_name: ['nullable', 'string', 'max:255'],
-      headline: ['nullable', 'string', 'max:255'],
-      tagline: ['nullable', 'string', 'max:500'],
-      bio: ['nullable', 'string'],
-      location: ['nullable', 'string', 'max:255'],
-      website: ['nullable', 'url', 'max:255'],
-      email_public: ['nullable', 'email', 'max:255'],
-      phone: ['nullable', 'string', 'max:32'],
-      github: ['nullable', 'url', 'max:255'],
-      linkedin: ['nullable', 'url', 'max:255'],
-      twitter: ['nullable', 'url', 'max:255'],
-      whatsapp: ['nullable', 'string', 'max:32'],
-      roles: ['nullable', 'array'],
-      available_for_work: ['nullable', 'boolean'],
-      meta: ['nullable', 'array'],
-    })
+  const saveProfile = wrap(async (req, res) => {
+    // PUT edits an existing row (matched by :id); POST always builds a new row.
+    const existing = req.params.id ? await findOrFail('profiles', req.params.id) : null
+    const isCreate = !existing
+
+    const { ok, errors, values } = await validate(req.body, PROFILE_RULES)
 
     const files = req.uploads || {}
     const avatar = files.avatar ? files.avatar[0] : null
@@ -358,31 +363,83 @@ module.exports = function createAdminRouter(db) {
       throw new ValidationError({ ...errors, ...fileErrors })
     }
 
+    // Homepage stat counters live in the meta JSON object — keep them numeric.
+    if (values.meta && isPlainObject(values.meta)) {
+      const meta = {}
+      for (const [key, item] of Object.entries(values.meta)) {
+        const n = toInt(item)
+        meta[key] = n === null ? item : n
+      }
+      values.meta = meta
+    }
+
     const columns = buildColumns(values, {
       json: ['roles', 'meta'],
       boolean: ['available_for_work'],
     })
-    await updateRow('profiles', profile.id, columns)
+
+    let targetId
+    if (existing) {
+      await updateRow('profiles', existing.id, columns)
+      targetId = existing.id
+    } else {
+      columns.user_id = (req.user && req.user.id) || 1
+      if (columns.available_for_work === undefined || columns.available_for_work === null) {
+        columns.available_for_work = true
+      }
+      targetId = await storeRow('profiles', columns)
+    }
 
     if (avatar) {
-      await clearMediaCollection(db, 'Profile', profile.id, 'avatar')
-      await storeUpload(db, { model_type: 'Profile', model_id: profile.id, collection_name: 'avatar', file: avatar, name: 'avatar' })
+      await clearMediaCollection(db, 'Profile', targetId, 'avatar')
+      await storeUpload(db, { model_type: 'Profile', model_id: targetId, collection_name: 'avatar', file: avatar, name: 'avatar' })
     }
     if (cover) {
-      await clearMediaCollection(db, 'Profile', profile.id, 'cover')
-      await storeUpload(db, { model_type: 'Profile', model_id: profile.id, collection_name: 'cover', file: cover, name: 'cover' })
+      await clearMediaCollection(db, 'Profile', targetId, 'cover')
+      await storeUpload(db, { model_type: 'Profile', model_id: targetId, collection_name: 'cover', file: cover, name: 'cover' })
     }
     if (resume) {
-      await clearMediaCollection(db, 'Profile', profile.id, 'resume')
-      await storeUpload(db, { model_type: 'Profile', model_id: profile.id, collection_name: 'resume', file: resume, name: 'resume' })
+      await clearMediaCollection(db, 'Profile', targetId, 'resume')
+      await storeUpload(db, { model_type: 'Profile', model_id: targetId, collection_name: 'resume', file: resume, name: 'resume' })
     }
 
     cache.flush()
-    res.ok(await serializeProfile(db, await findOrFail('profiles', profile.id), req), 'Profile updated.')
+    res.ok(
+      await serializeProfile(db, await findOrFail('profiles', targetId), req),
+      isCreate ? 'Profile created.' : 'Profile updated.'
+    )
   })
 
-  router.put('/profile/:id', updateProfile)
-  router.put('/profiles/:id', updateProfile)
+  const deleteProfile = wrap(async (req, res) => {
+    const profile = await findOrFail('profiles', req.params.id)
+    for (const media of await mediaRows(db, 'Profile', profile.id)) {
+      await deleteMediaRow(db, media)
+    }
+    // Detach owned content so deleting a profile never orphans/breaks the site.
+    for (const table of [
+      'skills',
+      'experiences',
+      'educations',
+      'certifications',
+      'projects',
+      'publications',
+      'services',
+      'testimonials',
+      'posts',
+    ]) {
+      await db.run(`UPDATE ${table} SET profile_id = NULL WHERE profile_id = ?`, profile.id)
+    }
+    await db.run('DELETE FROM profiles WHERE id = ?', profile.id)
+    cache.flush()
+    res.ok(null, 'Profile deleted.')
+  })
+
+  router.post('/profile', saveProfile)
+  router.post('/profiles', saveProfile)
+  router.put('/profile/:id', saveProfile)
+  router.put('/profiles/:id', saveProfile)
+  router.delete('/profile/:id', deleteProfile)
+  router.delete('/profiles/:id', deleteProfile)
 
   /* -------------------------------------------------- simple CRUD catalog */
 

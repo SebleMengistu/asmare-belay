@@ -4,6 +4,7 @@ import http from '../../api/http'
 
 const loading = ref(true)
 const saving = ref(false)
+const deleting = ref(false)
 const error = ref('')
 const savedNotice = ref('')
 const fieldErrors = ref({})
@@ -40,13 +41,49 @@ const resumeFile = ref(null)
 const avatarPreview = ref('')
 const coverPreview = ref('')
 
+function blankForm() {
+  return {
+    first_name: '',
+    last_name: '',
+    display_name: '',
+    headline: '',
+    tagline: '',
+    bio: '',
+    location: '',
+    website: '',
+    email_public: '',
+    phone: '',
+    github: '',
+    linkedin: '',
+    twitter: '',
+    whatsapp: '',
+    roles_text: '',
+    available_for_work: true,
+    experience_years: 0,
+    projects_completed: 0,
+    research_publications: 0,
+    technologies: 0,
+    students_trained: 0,
+  }
+}
+
 async function load() {
   loading.value = true
   error.value = ''
   try {
     const res = await http.get('/admin/profile')
-    const p = Array.isArray(res.data) ? res.data[0] : res.data
+    const list = Array.isArray(res.data) ? res.data : res.data ? [res.data] : []
+    const p = list.length > 0 ? list[0] : null
     profile.value = p
+    avatarPreview.value = ''
+    coverPreview.value = ''
+    avatarFile.value = null
+    coverFile.value = null
+    resumeFile.value = null
+    if (!p) {
+      form.value = blankForm()
+      return
+    }
     form.value = {
       first_name: p.first_name ?? '',
       last_name: p.last_name ?? '',
@@ -100,14 +137,14 @@ function onResumeChange(e) {
 }
 
 async function submit() {
-  if (!profile.value?.id) return
   saving.value = true
   error.value = ''
   fieldErrors.value = {}
   savedNotice.value = ''
 
+  const isUpdate = Boolean(profile.value?.id)
   const fd = new FormData()
-  fd.append('_method', 'PUT')
+  if (isUpdate) fd.append('_method', 'PUT')
 
   const fields = [
     'first_name', 'last_name', 'display_name', 'headline', 'tagline',
@@ -131,8 +168,8 @@ async function submit() {
   if (resumeFile.value) fd.append('resume', resumeFile.value)
 
   try {
-    const res = await http.post(`/admin/profile/${profile.value.id}`, fd)
-    savedNotice.value = res.message || 'Profile updated.'
+    const res = await http.post(isUpdate ? `/admin/profile/${profile.value.id}` : '/admin/profile', fd)
+    savedNotice.value = res.message || (isUpdate ? 'Profile updated.' : 'Profile created.')
     await load()
     avatarFile.value = null
     coverFile.value = null
@@ -142,6 +179,25 @@ async function submit() {
     if (e.status === 422 && e.errors) fieldErrors.value = e.errors
   } finally {
     saving.value = false
+  }
+}
+
+async function removeProfile() {
+  const id = profile.value?.id
+  if (!id || deleting.value) return
+  if (!window.confirm('Delete this profile permanently? Its avatar, cover and resume are removed and related content is detached. This cannot be undone.')) return
+  deleting.value = true
+  error.value = ''
+  savedNotice.value = ''
+  try {
+    const res = await http.delete(`/admin/profile/${id}`)
+    savedNotice.value = res.message || 'Profile deleted.'
+    profile.value = null
+    await load()
+  } catch (e) {
+    error.value = e.message
+  } finally {
+    deleting.value = false
   }
 }
 </script>
@@ -158,6 +214,11 @@ async function submit() {
     <div v-else class="space-y-6">
       <div v-if="savedNotice" class="rounded-lg bg-emerald-50 p-4 text-sm text-emerald-700">{{ savedNotice }}</div>
       <div v-if="error" class="rounded-lg bg-red-50 p-4 text-sm text-red-700">{{ error }}</div>
+
+      <div v-if="!profile" class="rounded-xl border border-dashed border-slate-300 bg-white p-6 text-center">
+        <h2 class="text-base font-semibold text-slate-900">No profile yet</h2>
+        <p class="mt-1 text-sm text-slate-500">Fill in the form below and press “Create profile” to publish your public profile.</p>
+      </div>
 
       <form novalidate class="space-y-6" @submit.prevent="submit">
         <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
@@ -294,10 +355,27 @@ async function submit() {
 
         <div class="flex justify-end">
           <button type="submit" :disabled="saving" class="btn-primary disabled:opacity-50">
-            {{ saving ? 'Saving…' : 'Save profile' }}
+            {{ saving ? 'Saving…' : profile ? 'Save profile' : 'Create profile' }}
           </button>
         </div>
       </form>
+
+      <section v-if="profile" class="rounded-xl border border-red-200 bg-red-50 p-5 shadow-sm space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="text-sm font-semibold text-red-700">Danger zone</h2>
+            <p class="text-xs text-red-500">Permanently delete this profile and its avatar, cover and resume. Related skills, projects, posts etc. are detached, not deleted.</p>
+          </div>
+          <button
+            type="button"
+            :disabled="deleting"
+            class="rounded-md border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100 disabled:opacity-50"
+            @click="removeProfile"
+          >
+            {{ deleting ? 'Deleting…' : 'Delete profile' }}
+          </button>
+        </div>
+      </section>
     </div>
   </div>
 </template>
