@@ -83,8 +83,13 @@
             </svg>
           </button>
 
-          <a v-if="cvUrl" :href="cvUrl" download class="btn-outline-light hidden !py-2 sm:inline-flex">Download CV</a>
-          <RouterLink v-else to="/contact" class="btn-outline-light hidden !py-2 sm:inline-flex">Download CV</RouterLink>
+          <a
+            :href="cvDownloadUrl"
+            download="Tefera-Alagaw-CV.pdf"
+            target="_blank"
+            rel="noopener"
+            class="btn-outline-light hidden !py-2 sm:inline-flex"
+          >Download CV</a>
 
           <button
             type="button"
@@ -105,7 +110,7 @@
       <Transition name="drawer">
         <nav v-if="menuOpen" class="border-t border-white/10 bg-navy-900 px-4 pb-4 pt-2 lg:hidden">
           <template v-for="item in nav" :key="'m-' + item.label">
-            <!-- Dropdown group — rendered as an accordion -->
+            <!-- Dropdown group â rendered as an accordion -->
             <div v-if="item.children">
               <button
                 type="button"
@@ -142,7 +147,13 @@
               {{ item.label }}
             </RouterLink>
           </template>
-          <a v-if="cvUrl" :href="cvUrl" download class="btn-primary mt-3 w-full">Download CV</a>
+          <a
+            :href="cvDownloadUrl"
+            download="Tefera-Alagaw-CV.pdf"
+            target="_blank"
+            rel="noopener"
+            class="btn-primary mt-3 w-full"
+          >Download CV</a>
         </nav>
       </Transition>
     </header>
@@ -224,15 +235,15 @@
           <p class="mt-4 text-sm leading-relaxed text-slate-400">
             Download my professional CV in PDF format.
           </p>
-          <a v-if="cvUrl" :href="cvUrl" download class="btn-primary mt-4">Download CV <span aria-hidden="true">⬇</span></a>
-          <RouterLink v-else to="/contact" class="btn-primary mt-4">Request CV <span aria-hidden="true">→</span></RouterLink>
+          <a v-if="cvUrl" :href="cvUrl" download class="btn-primary mt-4">Download CV <span aria-hidden="true">â¬</span></a>
+          <RouterLink v-else to="/contact" class="btn-primary mt-4">Request CV <span aria-hidden="true">â</span></RouterLink>
         </div>
       </div>
 
       <div class="border-t border-white/5 py-5">
         <div class="container-site flex flex-col items-center justify-between gap-2 text-xs text-slate-500 sm:flex-row">
-          <span>© {{ new Date().getFullYear() }} Tefera Alagaw. All rights reserved.</span>
-          <span>Built with Laravel · Vue · PostgreSQL</span>
+          <span>Â© {{ new Date().getFullYear() }} Tefera Alagaw. All rights reserved.</span>
+          <span>Built with Laravel Â· Vue Â· PostgreSQL</span>
         </div>
       </div>
     </footer>
@@ -261,7 +272,7 @@ function onDocClick(e) {
 
 onMounted(() => {
   document.addEventListener('click', onDocClick)
-  // Light fetch so the header CV button + footer contact block reflect the API.
+  // Fetch the profile so the footer contact block reflects the API.
   http
     .get('/profile')
     .then((res) => {
@@ -303,7 +314,7 @@ const footerServices = [
   { label: 'IT Consulting', to: '/services' },
 ]
 
-const cvUrl = computed(() => profile.value?.resume || '')
+const cvDownloadUrl = 'https://drive.google.com/uc?export=download&id=1L74ALZRo5IeAseGF3tybG-ECbCJWPij7'
 
 const footerSocials = useSocials(profile)
 
