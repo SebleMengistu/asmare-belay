@@ -110,7 +110,7 @@
       <Transition name="drawer">
         <nav v-if="menuOpen" class="border-t border-white/10 bg-navy-900 px-4 pb-4 pt-2 lg:hidden">
           <template v-for="item in nav" :key="'m-' + item.label">
-            <!-- Dropdown group â rendered as an accordion -->
+            <!-- Dropdown group Ã¢ÂÂ rendered as an accordion -->
             <div v-if="item.children">
               <button
                 type="button"
@@ -235,15 +235,20 @@
           <p class="mt-4 text-sm leading-relaxed text-slate-400">
             Download my professional CV in PDF format.
           </p>
-          <a v-if="cvUrl" :href="cvUrl" download class="btn-primary mt-4">Download CV <span aria-hidden="true">â¬</span></a>
-          <RouterLink v-else to="/contact" class="btn-primary mt-4">Request CV <span aria-hidden="true">â</span></RouterLink>
+          <a
+            :href="cvDownloadUrl"
+            download="Tefera-Alagaw-CV.pdf"
+            target="_blank"
+            rel="noopener"
+            class="btn-primary mt-4"
+          >Download CV <span aria-hidden="true">⬇</span></a>
         </div>
       </div>
 
       <div class="border-t border-white/5 py-5">
         <div class="container-site flex flex-col items-center justify-between gap-2 text-xs text-slate-500 sm:flex-row">
-          <span>Â© {{ new Date().getFullYear() }} Tefera Alagaw. All rights reserved.</span>
-          <span>Built with Laravel Â· Vue Â· PostgreSQL</span>
+          <span>ÃÂ© {{ new Date().getFullYear() }} Tefera Alagaw. All rights reserved.</span>
+          <span>Built with Laravel ÃÂ· Vue ÃÂ· PostgreSQL</span>
         </div>
       </div>
     </footer>
