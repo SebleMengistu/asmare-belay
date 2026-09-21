@@ -118,7 +118,7 @@ function isStrokeIcon(key) {
             v-if="avatar"
             :src="avatar"
             :alt="`Portrait of ${nameParts.first} ${nameParts.rest}`"
-            class="relative aspect-[4/5] w-full rounded-3xl object-cover object-top shadow-2xl shadow-navy-950/60 ring-1 ring-white/10"
+            class="relative aspect-[4/5] w-full rounded-3xl bg-white object-contain object-top shadow-2xl shadow-navy-950/60 ring-1 ring-white/10"
           />
           <div
             v-else
