@@ -34,7 +34,7 @@ function variantsFor(modelType, collection) {
   const model = String(modelType || '').split('\\').pop()
   if (collection === 'avatar') {
     return [
-      { name: 'thumb', width: 320, height: 320, crop: true },
+      { name: 'thumb', width: 320 },
       { name: 'card', width: 640 },
     ]
   }
