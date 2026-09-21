@@ -215,7 +215,7 @@ async function serializeProfile(db, row, req) {
     roles: list(row.roles),
     available_for_work: toBoolean(row.available_for_work),
     meta: list(row.meta),
-    avatar: mediaVariantUrl(avatar, req, 'thumb'),
+    avatar: mediaUrl(avatar, req),
     cover: mediaVariantUrl(cover, req, 'hero'),
     resume: mediaUrl(resume, req),
   }
