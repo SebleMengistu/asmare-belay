@@ -16,7 +16,9 @@ function resolveEnvPath(value, fallback) {
 const storageDir = path.join(ROOT, 'storage')
 
 function trimTrailingSlashes(value) {
-  return String(value || '').replace(/\/+$/, '')
+  return String(value || '')
+    .replace(/\/(?:rest|storage)\/v1\/?$/i, '')
+    .replace(/\/+$/, '')
 }
 
 /**
