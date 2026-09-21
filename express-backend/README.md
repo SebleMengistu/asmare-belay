@@ -11,15 +11,16 @@ unchanged.
   SQLite file.
 - Auth: Sanctum-compatible opaque bearer tokens stored in
   `personal_access_tokens` (`<id>|<plain>`, stored as `sha256(plain)`).
-- Media: stored under `storage/media/{id}/...` and served from `/storage/...`,
-  with `sharp`-generated conversions.
+- Media: stored in a public Supabase Storage bucket, with the object path saved
+  in Postgres and `sharp`-generated conversions uploaded beside the original.
+  Existing local/BYTEA media is migrated on boot when its source is available.
 
 ## Getting started
 
 ```bash
 cd express-backend
 npm install
-copy .env.example .env   # set DATABASE_URL to your Postgres / Supabase URL
+copy .env.example .env   # set database + Supabase Storage credentials
 npm run migrate          # one-time import of data/portfolio.sqlite (SQLite) -> Postgres
 npm run dev              # node --watch src/server.js
 ```
@@ -53,6 +54,9 @@ See `.env.example`. Relative paths are resolved from `express-backend/`.
 | `FRONTEND_URL`          | `http://localhost:5175`              | Allowed CORS origin.                      |
 | `DATABASE_URL`          | `postgresql://...`                   | Postgres / Supabase connection string.    |
 | `DB_SSL`                | auto (prod)                          | Force SSL on/off.                         |
+| `SUPABASE_URL`          | unset                               | Supabase project URL for Storage.         |
+| `SUPABASE_SERVICE_ROLE_KEY` | unset                           | Backend-only Storage management key.      |
+| `SUPABASE_STORAGE_BUCKET` | `portfolio-media`                  | Public bucket for uploaded media.         |
 | `DB_PATH`               | `./data/portfolio.sqlite`            | SQLite source for `npm run migrate`.      |
 | `LEGACY_DB_PATH`        | `../backend/database/database.sqlite`| Unused legacy import source.              |
 | `LEGACY_STORAGE_PATH`   | `../backend/storage/app/public`      | Unused legacy media source.               |
@@ -110,8 +114,11 @@ Pagination is returned in `meta.pagination`
 
 Use the blueprint in `express-backend/render.yaml` (`npm install --omit=dev`,
 `node src/server.js`, health check `/up`). Set `APP_URL` to the public service
-URL, `FRONTEND_URL` to the deployed SPA origin, and `DATABASE_URL` to your
-Supabase connection string (Render -> Environment, **never commit it**).
+URL, `FRONTEND_URL` to the deployed SPA origin, `DATABASE_URL` to your Supabase
+connection string, `SUPABASE_URL` to the project URL, and
+`SUPABASE_SERVICE_ROLE_KEY` to the backend-only service role key (Render ->
+Environment, **never commit secrets**). The server creates the public
+`SUPABASE_STORAGE_BUCKET` bucket if it does not exist.
 
 For an existing Supabase project, run the one-time import once so the ported
 data lives in Postgres:
@@ -120,6 +127,7 @@ data lives in Postgres:
 DATABASE_URL="postgresql://postgres.<ref>:<pw>@aws-0-<region>.pooler.supabase.com:5432/postgres" npm run migrate
 ```
 
-Media files under `storage/media` stay committed and are served from the
-ephemeral disk (no external object storage). Uploads made on Render are not
-synced back to this repo.
+On boot, media rows without a `storage_path` are migrated from the committed
+`storage/media` files or legacy `file_data` values when available. New uploads
+and generated conversions go directly to Supabase Storage, so Render restarts
+do not remove them.
