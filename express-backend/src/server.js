@@ -5,6 +5,7 @@ const { db } = require('./lib/db')
 const { SCHEMA } = require('./lib/schema')
 const { seedIfEmpty } = require('./lib/seed')
 const { createApp } = require('./app')
+const { migrateMediaToStorage } = require('./lib/media')
 
 async function bootstrap() {
   try {
@@ -14,8 +15,13 @@ async function bootstrap() {
     console.log(`[boot] db: <invalid DATABASE_URL="${config.databaseUrl}">`)
   }
   await db.exec(SCHEMA)
-  // Existing databases need the durable upload column added without a reset.
-  await db.exec("ALTER TABLE media ADD COLUMN IF NOT EXISTS file_data BYTEA")
+  // Existing databases need the durable storage column added without a reset.
+  await db.exec('ALTER TABLE media ADD COLUMN IF NOT EXISTS storage_path TEXT')
+  await db.exec('CREATE INDEX IF NOT EXISTS media_storage_path_idx ON media (storage_path)')
+  const mediaMigration = await migrateMediaToStorage(db)
+  if (mediaMigration.droppedLegacyColumn) {
+    console.log('[boot] removed the legacy media BYTEA column after migration')
+  }
   const seeded = await seedIfEmpty()
   if (seeded.seeded) {
     console.log('[boot] database was empty — seeded an admin account + starter profile')

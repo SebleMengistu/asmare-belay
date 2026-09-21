@@ -154,27 +154,6 @@ function createApp(db) {
 
   app.use(attachResponder)
 
-  // Render's local filesystem is ephemeral; serve durable database-backed
-  // uploads when the corresponding disk file is unavailable.
-  app.get('/storage/media/:id/*', async (req, res, next) => {
-    try {
-      const media = await db.get(
-        'SELECT file_name, mime_type, file_data FROM media WHERE id = ?',
-        req.params.id,
-      )
-      if (!media?.file_data) return next()
-
-      const requestedName = String(req.params[0] || '').split('/').pop()
-      const originalName = String(media.file_name || '')
-      const originalBase = originalName.replace(/\.[^.]+$/, '')
-      if (requestedName !== originalName && !requestedName.startsWith(originalBase + '-')) return next()
-
-      res.set('Cache-Control', 'public, max-age=31536000, immutable')
-      return res.type(media.mime_type || 'application/octet-stream').send(media.file_data)
-    } catch (error) {
-      return next(error)
-    }
-  })
   app.use('/storage', express.static(config.storageDir, { fallthrough: true, maxAge: '7d' }))
 
   app.get('/up', (req, res) => res.status(200).json({ status: 'ok' }))
