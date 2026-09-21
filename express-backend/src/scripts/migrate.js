@@ -181,7 +181,7 @@ async function main() {
   for (const [table, count] of Object.entries(counts)) {
     if (count > 0) console.log(`  ${table}: ${count}`)
   }
-  console.log('[migrate] done. Media files remain served from ./storage/media (committed).')
+  console.log('[migrate] done. Media rows will be moved to Supabase Storage on API boot when configured.')
 }
 
 main()
