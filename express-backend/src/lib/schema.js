@@ -324,7 +324,7 @@ CREATE TABLE IF NOT EXISTS media (
   generated_conversions JSONB,
   responsive_images JSONB,
   order_column INTEGER,
-  file_data BYTEA,
+  storage_path TEXT,
   created_at TIMESTAMPTZ,
   updated_at TIMESTAMPTZ
 );

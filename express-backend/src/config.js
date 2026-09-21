@@ -15,6 +15,10 @@ function resolveEnvPath(value, fallback) {
 
 const storageDir = path.join(ROOT, 'storage')
 
+function trimTrailingSlashes(value) {
+  return String(value || '').replace(/\/+$/, '')
+}
+
 /**
  * Postgres / Supabase connection. Prefer DATABASE_URL (e.g. Supabase's
  * "Connection string" — pooler or direct). Discrete PG* vars are supported as
@@ -49,6 +53,9 @@ module.exports = {
   frontendUrl: (process.env.FRONTEND_URL || 'http://localhost:5175').replace(/\/+$/, ''),
   databaseUrl: databaseUrl(),
   dbSsl: dbSsl(),
+  supabaseUrl: trimTrailingSlashes(process.env.SUPABASE_URL),
+  supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+  supabaseStorageBucket: process.env.SUPABASE_STORAGE_BUCKET || 'portfolio-media',
   // Legacy SQLite sources — only used by the one-time migration script.
   dbPath: resolveEnvPath(process.env.DB_PATH, path.join(ROOT, 'data', 'portfolio.sqlite')),
   legacyDbPath: resolveEnvPath(
