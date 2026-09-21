@@ -70,7 +70,8 @@ async function ensureBucket() {
         }
         return true
       } catch (error) {
-        if (error.status !== 404) throw error
+        const missingBucket = error.status === 404 || (error.status === 400 && /bucket not found/i.test(error.message))
+        if (!missingBucket) throw error
         await storageRequest('/storage/v1/bucket', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
