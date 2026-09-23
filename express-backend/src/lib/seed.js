@@ -2,7 +2,7 @@
 
 const bcrypt = require('bcryptjs')
 const config = require('../config')
-const db = require('./db')
+const { db } = require('./db')
 const { isoNow } = require('./format')
 
 const PERMISSIONS = [

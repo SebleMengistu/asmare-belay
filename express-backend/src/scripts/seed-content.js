@@ -13,10 +13,19 @@
  */
 
 const config = require('../config')
-const { db, pool } = require('../lib/db')
+const { db } = require('../lib/db')
 const { SCHEMA } = require('../lib/schema')
 const { seedIfEmpty } = require('../lib/seed')
-const { PROFILE, SKILLS, EXPERIENCES, EDUCATIONS, CERTIFICATIONS, PUBLICATIONS, PROJECTS, POSTS } = require('../lib/cvData')
+const {
+  PROFILE,
+  SKILLS,
+  EXPERIENCES,
+  EDUCATIONS,
+  CERTIFICATIONS,
+  PUBLICATIONS,
+  PROJECTS,
+  POSTS,
+} = require('../lib/cvData')
 
 function slugify(value) {
   return String(value)
@@ -28,17 +37,48 @@ function slugify(value) {
     .slice(0, 180)
 }
 
-async function count(table) {
-  const { rows } = await pool.query(`SELECT COUNT(*)::int AS n FROM ${table}`)
-  return rows[0].n
-}
-
 async function upsertProfile() {
-  const now = new Date().toISOString()
-  const { rows } = await pool.query(
-    `SELECT id FROM profiles ORDER BY id LIMIT 1`,
-  )
-  const values = [
+  const existing = await db.get(`SELECT id FROM profiles ORDER BY id LIMIT 1`)
+
+  if (existing) {
+    await db.run(
+      `UPDATE profiles SET
+         first_name = ?, last_name = ?, display_name = ?, headline = ?,
+         tagline = ?, bio = ?, location = ?, website = ?,
+         email_public = ?, phone = ?, github = ?, linkedin = ?,
+         twitter = ?, whatsapp = ?, roles = ?, meta = ?,
+         available_for_work = TRUE, updated_at = NOW()
+       WHERE id = ?`,
+      PROFILE.first_name,
+      PROFILE.last_name,
+      PROFILE.display_name,
+      PROFILE.headline,
+      PROFILE.tagline,
+      PROFILE.bio,
+      PROFILE.location,
+      PROFILE.website,
+      PROFILE.email_public,
+      PROFILE.phone,
+      PROFILE.github,
+      PROFILE.linkedin,
+      PROFILE.twitter,
+      PROFILE.whatsapp,
+      JSON.stringify(PROFILE.roles),
+      JSON.stringify(PROFILE.meta),
+      existing.id,
+    )
+    console.log(`profile: updated row #${existing.id}`)
+    return existing.id
+  }
+
+  const admin = await db.get(`SELECT id FROM users ORDER BY id LIMIT 1`)
+  const inserted = await db.run(
+    `INSERT INTO profiles
+       (user_id, first_name, last_name, display_name, headline, tagline, bio,
+        location, website, email_public, phone, github, linkedin, twitter,
+        whatsapp, roles, available_for_work, meta, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?, NOW(), NOW())`,
+    admin?.id ?? null,
     PROFILE.first_name,
     PROFILE.last_name,
     PROFILE.display_name,
@@ -55,40 +95,13 @@ async function upsertProfile() {
     PROFILE.whatsapp,
     JSON.stringify(PROFILE.roles),
     JSON.stringify(PROFILE.meta),
-    now,
-  ]
-
-  if (rows.length) {
-    await pool.query(
-      `UPDATE profiles SET
-         first_name = $1, last_name = $2, display_name = $3, headline = $4,
-         tagline = $5, bio = $6, location = $7, website = $8,
-         email_public = $9, phone = $10, github = $11, linkedin = $12,
-         twitter = $13, whatsapp = $14, roles = $15, meta = $16,
-         available_for_work = TRUE, updated_at = $17
-       WHERE id = $18`,
-      [...values, rows[0].id],
-    )
-    console.log(`profile: updated row #${rows[0].id}`)
-    return rows[0].id
-  }
-
-  const admin = await pool.query(`SELECT id FROM users ORDER BY id LIMIT 1`)
-  const inserted = await pool.query(
-    `INSERT INTO profiles
-       (user_id, first_name, last_name, display_name, headline, tagline, bio,
-        location, website, email_public, phone, github, linkedin, twitter,
-        whatsapp, roles, available_for_work, meta, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, TRUE, $17, $18, $18)
-     RETURNING id`,
-    [admin.rows[0]?.id ?? null, ...values],
   )
-  console.log(`profile: created row #${inserted.rows[0].id}`)
-  return inserted.rows[0].id
+  console.log(`profile: created row #${inserted.id}`)
+  return inserted.id
 }
 
 async function seedSkills(profileId) {
-  if ((await count('skills')) > 0) return console.log('skills: already populated, skipping')
+  if ((await db.count('skills')) > 0) return console.log('skills: already populated, skipping')
   for (const [i, [name, category, level]] of SKILLS.entries()) {
     await db.run(
       `INSERT INTO skills (profile_id, name, category, level, display_order, is_active)
@@ -100,7 +113,7 @@ async function seedSkills(profileId) {
 }
 
 async function seedExperiences(profileId) {
-  if ((await count('experiences')) > 0) return console.log('experiences: already populated, skipping')
+  if ((await db.count('experiences')) > 0) return console.log('experiences: already populated, skipping')
   for (const e of EXPERIENCES) {
     await db.run(
       `INSERT INTO experiences
@@ -115,7 +128,7 @@ async function seedExperiences(profileId) {
 }
 
 async function seedEducations(profileId) {
-  if ((await count('educations')) > 0) return console.log('educations: already populated, skipping')
+  if ((await db.count('educations')) > 0) return console.log('educations: already populated, skipping')
   for (const e of EDUCATIONS) {
     await db.run(
       `INSERT INTO educations
@@ -130,7 +143,7 @@ async function seedEducations(profileId) {
 }
 
 async function seedCertifications(profileId) {
-  if ((await count('certifications')) > 0) return console.log('certifications: already populated, skipping')
+  if ((await db.count('certifications')) > 0) return console.log('certifications: already populated, skipping')
   for (const [i, [name, issuer]] of CERTIFICATIONS.entries()) {
     await db.run(
       `INSERT INTO certifications (profile_id, name, issuer, display_order, is_active)
@@ -142,7 +155,7 @@ async function seedCertifications(profileId) {
 }
 
 async function seedPublications(profileId) {
-  if ((await count('publications')) > 0) return console.log('publications: already populated, skipping')
+  if ((await db.count('publications')) > 0) return console.log('publications: already populated, skipping')
   for (const p of PUBLICATIONS) {
     await db.run(
       `INSERT INTO publications
@@ -156,7 +169,7 @@ async function seedPublications(profileId) {
 }
 
 async function seedProjects(profileId) {
-  if ((await count('projects')) > 0) return console.log('projects: already populated, skipping')
+  if ((await db.count('projects')) > 0) return console.log('projects: already populated, skipping')
   for (const p of PROJECTS) {
     await db.run(
       `INSERT INTO projects
@@ -171,23 +184,20 @@ async function seedProjects(profileId) {
 }
 
 async function seedPosts(profileId) {
-  if ((await count('posts')) > 0) return console.log('posts: already populated, skipping')
+  if ((await db.count('posts')) > 0) return console.log('posts: already populated, skipping')
   for (const p of POSTS) {
     const post = await db.run(
       `INSERT INTO posts
          (profile_id, title, slug, excerpt, body, status, published_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, 'published', ?, NOW(), NOW())
-       RETURNING id`,
+       VALUES (?, ?, ?, ?, ?, 'published', ?, NOW(), NOW())`,
       profileId, p.title, p.slug, p.excerpt, p.body, p.published_at,
     )
     for (const tagName of p.tags) {
-      const tagSlug = slugify(tagName)
       const tag = await db.run(
         `INSERT INTO post_tags (name, slug, created_at, updated_at)
          VALUES (?, ?, NOW(), NOW())
-         ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name
-         RETURNING id`,
-        tagName, tagSlug,
+         ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name`,
+        tagName, slugify(tagName),
       )
       await db.run(
         `INSERT INTO post_tag (post_id, post_tag_id) VALUES (?, ?)
@@ -200,7 +210,7 @@ async function seedPosts(profileId) {
 }
 
 async function main() {
-  await pool.query(SCHEMA)
+  await db.exec(SCHEMA)
   console.log('schema: applied')
 
   const seeded = await seedIfEmpty()
@@ -223,4 +233,4 @@ main()
     console.error('seed-content failed:', err.message)
     process.exitCode = 1
   })
-  .finally(() => pool.end())
+  .finally(() => db.close())
