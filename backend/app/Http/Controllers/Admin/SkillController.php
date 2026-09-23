@@ -23,8 +23,8 @@ class SkillController extends BaseCrudController
     protected function categoryRule(): array
     {
         return ['nullable', 'string', 'max:64', Rule::in([
-            'frontend', 'backend', 'database', 'tools', 'teaching',
-            'security', 'networking', 'lms', 'odoo', 'general',
+            'modeling', 'gis', 'programming', 'research', 'tools',
+            'frontend', 'backend', 'database', 'teaching', 'general',
         ])];
     }
 

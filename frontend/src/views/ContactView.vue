@@ -5,7 +5,7 @@ import { useSeo } from '../composables/useSeo'
 
 useSeo({
   title: 'Contact',
-  description: 'Get in touch about Odoo projects, development work or research collaboration.',
+  description: 'Get in touch about hydrological modeling projects, GIS & remote sensing work, training or research collaboration.',
 })
 
 const form = reactive({
@@ -75,13 +75,13 @@ async function submit() {
       <div class="grid gap-5 sm:grid-cols-2">
         <label class="block space-y-1.5">
           <span class="label">Name *</span>
-          <input v-model="form.name" type="text" required placeholder="tefera alagaw" class="input" />
+          <input v-model="form.name" type="text" required placeholder="Your full name" class="input" />
           <span v-if="fieldErrors.name" class="block text-xs font-medium text-red-600">{{ fieldErrors.name[0] }}</span>
         </label>
 
         <label class="block space-y-1.5">
           <span class="label">Email *</span>
-          <input v-model="form.email" type="email" required placeholder="tefera@gmail.com" class="input" />
+          <input v-model="form.email" type="email" required placeholder="you@example.com" class="input" />
           <span v-if="fieldErrors.email" class="block text-xs font-medium text-red-600">{{ fieldErrors.email[0] }}</span>
         </label>
       </div>
@@ -94,7 +94,7 @@ async function submit() {
 
         <label class="block space-y-1.5">
           <span class="label">Subject</span>
-          <input v-model="form.subject" type="text" placeholder="Odoo consultation, Laravel project…" class="input" />
+          <input v-model="form.subject" type="text" placeholder="Watershed modeling, flood analysis, GIS mapping…" class="input" />
         </label>
       </div>
 

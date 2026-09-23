@@ -4,7 +4,7 @@
  * with whatever view is mounted. Idempotent — repeated navigation upserts the
  * same singleton tags instead of stacking duplicates.
  */
-const SITE_NAME = 'TEFERA Portfolio'
+const SITE_NAME = 'ASMARE Portfolio'
 
 function upsertMeta(attr, key, content) {
   if (!content) return
@@ -44,7 +44,7 @@ function absoluteUrl(value) {
 /**
  * @param {{
  *   title?: string,
- *   raw?: boolean,          // use `title` verbatim instead of "… · TEFERA"
+ *   raw?: boolean,          // use `title` verbatim instead of "… · ASMARE"
  *   description?: string,
  *   image?: string,
  *   type?: string,          // Open Graph type: website | article | …

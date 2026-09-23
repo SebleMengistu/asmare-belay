@@ -21,7 +21,7 @@ const success = ref('')
 const error = ref('')
 const fieldErrors = ref({})
 
-const categories = ['General', 'Project', 'Article', 'Odoo', 'Teaching', 'Research', 'Other']
+const categories = ['General', 'Project', 'Article', 'GIS', 'Teaching', 'Research', 'Other']
 
 function validate() {
   fieldErrors.value = {}

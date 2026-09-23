@@ -2,9 +2,9 @@
   <div class="flex min-h-screen bg-slate-100">
     <aside class="flex w-60 flex-col border-r border-slate-800 bg-slate-900 text-slate-200">
       <div class="flex items-center gap-2.5 px-5 py-5">
-        <img src="/favicon.svg" alt="TEFERA logo" class="h-9 w-9 shrink-0 rounded-full" />
+        <img src="/favicon.svg" alt="ASMARE logo" class="h-9 w-9 shrink-0 rounded-full" />
         <div>
-          <p class="text-lg font-bold tracking-tight text-white">TEFERA</p>
+          <p class="text-lg font-bold tracking-tight text-white">ASMARE</p>
           <p class="text-xs uppercase tracking-widest text-slate-500">Admin</p>
         </div>
       </div>

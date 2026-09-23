@@ -286,7 +286,7 @@ onMounted(load)
             </label>
             <label class="block space-y-1">
               <span class="text-sm font-medium text-slate-700">Roles (comma-separated)</span>
-              <input v-model="form.roles_text" type="text" placeholder="IT Lecturer, Full-Stack Developer" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              <input v-model="form.roles_text" type="text" placeholder="Hydrology & Water Resources Engineer, Lecturer & Researcher" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
             </label>
           </div>
           <label class="flex items-center gap-2 text-sm text-slate-700">

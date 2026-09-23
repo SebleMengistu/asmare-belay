@@ -9,11 +9,11 @@
         <RouterLink to="/" class="group flex shrink-0 items-center gap-2.5">
           <img
             src="/favicon.svg"
-            alt="TEFERA logo"
+            alt="ASMARE logo"
             class="h-10 w-10 rounded-full shadow-lg shadow-brand-600/40 transition-transform duration-300 group-hover:scale-105"
           />
           <span class="leading-tight">
-            <span class="block font-display text-lg font-extrabold tracking-wide text-white">TEFERA</span>
+            <span class="block font-display text-lg font-extrabold tracking-wide text-white">ASMARE</span>
             <span class="block text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-400">Portfolio</span>
           </span>
         </RouterLink>
@@ -85,7 +85,7 @@
 
           <a
             :href="cvDownloadUrl"
-            download="Tefera-Alagaw-CV.pdf"
+            download="Asmare-Belay-CV.pdf"
             target="_blank"
             rel="noopener"
             class="btn-outline-light hidden !py-2 sm:inline-flex"
@@ -149,7 +149,7 @@
           </template>
           <a
             :href="cvDownloadUrl"
-            download="Tefera-Alagaw-CV.pdf"
+            download="Asmare-Belay-CV.pdf"
             target="_blank"
             rel="noopener"
             class="btn-primary mt-3 w-full"
@@ -168,14 +168,14 @@
         <!-- Brand -->
         <div>
           <RouterLink to="/" class="flex items-center gap-2.5">
-            <img src="/favicon.svg" alt="TEFERA logo" class="h-10 w-10 rounded-full" />
+            <img src="/favicon.svg" alt="ASMARE logo" class="h-10 w-10 rounded-full" />
             <span class="leading-tight">
-              <span class="block font-display text-lg font-extrabold tracking-wide text-white">TEFERA</span>
+              <span class="block font-display text-lg font-extrabold tracking-wide text-white">ASMARE</span>
               <span class="block text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500">Portfolio</span>
             </span>
           </RouterLink>
           <p class="mt-4 max-w-xs text-sm leading-relaxed text-slate-400">
-            IT Lecturer, Software Developer, Odoo Developer &amp; Consultant, Researcher dedicated to creating impact through technology and education.
+            Hydrology &amp; Water Resources Engineer, Lecturer &amp; Researcher dedicated to advancing sustainable water solutions and climate resilience through modeling and geospatial analysis.
           </p>
           <div class="mt-5 flex gap-2">
             <a
@@ -237,7 +237,7 @@
           </p>
           <a
             :href="cvDownloadUrl"
-            download="Tefera-Alagaw-CV.pdf"
+            download="Asmare-Belay-CV.pdf"
             target="_blank"
             rel="noopener"
             class="btn-primary mt-4"
@@ -247,8 +247,8 @@
 
       <div class="border-t border-white/5 py-5">
         <div class="container-site flex flex-col items-center justify-between gap-2 text-xs text-slate-500 sm:flex-row">
-          <span>© {{ new Date().getFullYear() }} Tefera Alagaw. All rights reserved.</span>
-          <span>Built with Laravel · Vue · PostgreSQL</span>
+          <span>© {{ new Date().getFullYear() }} Asmare Belay. All rights reserved.</span>
+          <span>Built with Laravel · Express · Vue · PostgreSQL</span>
         </div>
       </div>
     </footer>
@@ -308,15 +308,15 @@ const nav = [
 ]
 
 const quickLinks = nav.filter((item) =>
-  ['About', 'Teaching', 'Development', 'Odoo', 'Research'].includes(item.label),
+  ['About', 'Skill', 'Experience', 'Research'].includes(item.label),
 )
 
 const footerServices = [
-  { label: 'Software Development', to: '/services' },
-  { label: 'Odoo Implementation', to: '/services' },
-  { label: 'System Analysis', to: '/services' },
+  { label: 'Hydrological Modeling', to: '/services' },
+  { label: 'GIS & Remote Sensing', to: '/services' },
+  { label: 'Flood & Drought Analysis', to: '/services' },
   { label: 'Training & Workshops', to: '/services' },
-  { label: 'IT Consulting', to: '/services' },
+  { label: 'Water Resources Consulting', to: '/services' },
 ]
 
 const cvDownloadUrl = 'https://drive.google.com/uc?export=download&id=1L74ALZRo5IeAseGF3tybG-ECbCJWPij7'

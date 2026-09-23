@@ -1,4 +1,4 @@
-# TEFERA Portfolio System — API Reference
+# ASMARE Portfolio System — API Reference
 
 Base URL: `{APP_URL}/api/v1` — all responses use the JSON envelope
 `{ success, message, data, errors }`.

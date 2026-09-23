@@ -5,7 +5,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ---------------------------------------------------------------------------
-   TEFERA design system — tokens
+   ASMARE design system — tokens
    Brand: deep navy surfaces, royal blue primary, violet gradient accents.
 --------------------------------------------------------------------------- */
 @theme {

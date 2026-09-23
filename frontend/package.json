@@ -1,6 +1,6 @@
 {
   "$schema": "https://www.schemastore.org/package.json",
-  "name": "tefera-portfolio-frontend",
+  "name": "asmare-portfolio-frontend",
   "version": "0.1.0",
   "private": true,
   "type": "module",

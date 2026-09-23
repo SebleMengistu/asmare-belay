@@ -9,8 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('publications', function (Blueprint $table) {
-            $table->text('url')->change();
-            $table->text('doi')->change();
+            // Modifiers must be re-declared when changing a column, otherwise
+            // the recreated column loses its NULL default (SQLite inserts fail).
+            $table->text('url')->nullable()->change();
+            $table->text('doi')->nullable()->change();
         });
     }
 

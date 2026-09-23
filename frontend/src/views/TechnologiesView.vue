@@ -6,7 +6,7 @@ import SkillIcon from '../components/SkillIcon.vue'
 
 useSeo({
   title: 'Technologies & Skills',
-  description: 'All technologies, tools and skills of Tefera Alagaw — backend, frontend, database, security and more.',
+  description: 'All technologies, tools and skills of Asmare Belay — hydrological modeling, GIS, remote sensing, programming and more.',
 })
 
 const loading = ref(true)
@@ -14,15 +14,16 @@ const error = ref('')
 const skills = ref([])
 
 const CATEGORIES = {
-  backend: 'Backend',
-  frontend: 'Frontend',
-  database: 'Database',
-  security: 'Security & Networking',
-  networking: 'Networking',
+  modeling: 'Hydrological Modeling',
+  gis: 'GIS & Remote Sensing',
+  programming: 'Programming',
+  research: 'Research & Analysis',
   tools: 'Tools & Platforms',
-  lms: 'LMS & Learning',
   teaching: 'Teaching',
-  odoo: 'Odoo',
+  frontend: 'Frontend',
+  backend: 'Backend',
+  database: 'Database',
+  general: 'General',
 }
 
 const grouped = computed(() => {

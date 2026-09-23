@@ -7,7 +7,7 @@ const props = defineProps({
   profile: { type: Object, default: null },
 })
 
-const FALLBACK_ROLES = ['IT Lecturer', 'Software Developer', 'Odoo Developer & Consultant', 'Researcher']
+const FALLBACK_ROLES = ['Hydrology & Water Resources Engineer', 'Lecturer & Researcher', 'Hydrological Modeler', 'GIS & Remote Sensing Specialist']
 
 const roles = computed(() =>
   (Array.isArray(props.profile?.roles) && props.profile?.roles.length
@@ -16,9 +16,9 @@ const roles = computed(() =>
 )
 
 const nameParts = computed(() => {
-  const name = String(props.profile?.display_name || 'Tefera Alagaw').trim()
+  const name = String(props.profile?.display_name || 'Asmare Belay').trim()
   const words = name.split(/\s+/)
-  return { first: words[0] || 'Tefera', rest: words.slice(1).join(' ') || 'Alagaw' }
+  return { first: words[0] || 'Asmare', rest: words.slice(1).join(' ') || 'Belay' }
 })
 
 // Roles are displayed two per line, matching the mockup.
@@ -33,7 +33,7 @@ const roleLines = computed(() => {
 const avatar = computed(() => props.profile?.avatar || '')
 
 const initials = computed(() =>
-  nameParts.value.first[0]?.concat(nameParts.value.rest[0] || '').toUpperCase() || 'TG',
+  nameParts.value.first[0]?.concat(nameParts.value.rest[0] || '').toUpperCase() || 'AB',
 )
 
 const socials = useSocials(props.profile)
@@ -95,7 +95,7 @@ function isStrokeIcon(key) {
         </div>
 
         <p class="mt-5 max-w-xl text-base leading-relaxed text-slate-400">
-          {{ profile?.tagline || 'Building intelligent solutions, empowering students, delivering business value with Odoo, and advancing research for a better tomorrow.' }}
+          {{ profile?.tagline || 'Advancing sustainable water resources solutions and climate resilience through hydrological modeling, integrated water management, and geospatial analysis.' }}
         </p>
 
         <div class="mt-8 flex flex-wrap gap-4">

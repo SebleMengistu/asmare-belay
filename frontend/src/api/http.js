@@ -15,13 +15,13 @@ const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
 function shouldCache(config) {
   const url = String(config.url || '')
-  const hasToken = Boolean(localStorage.getItem('tefera_token'))
+  const hasToken = Boolean(localStorage.getItem('asmare_token'))
   return config.method === 'get' && !hasToken && !url.includes('/admin') && url !== '/' && !url.startsWith('/projects')
 }
 
 http.interceptors.request.use((config) => {
   // Attach Bearer token for authenticated requests.
-  const token = localStorage.getItem('tefera_token')
+  const token = localStorage.getItem('asmare_token')
   if (token) config.headers.Authorization = `Bearer ${token}`
 
   // Only cache public (unauthenticated) GETs — skip admin routes.

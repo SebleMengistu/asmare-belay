@@ -14,7 +14,7 @@ function categoryOf(post) {
 }
 
 function authorName() {
-  return 'Tefera Alagaw'
+  return 'Asmare Belay'
 }
 
 /* Newsletter ------------------------------------------------------------- */
@@ -124,7 +124,7 @@ async function subscribe() {
               </p>
               <div class="mt-3 flex items-center gap-2 text-xs text-slate-400">
                 <span class="grid h-6 w-6 place-items-center rounded-full bg-navy-900 font-display text-[10px] font-bold text-white">
-                  TA
+                  AB
                 </span>
                 <span class="font-semibold text-slate-500 dark:text-slate-400">{{ authorName() }}</span>
                 <span aria-hidden="true">•</span>

@@ -1,9 +1,9 @@
-# TEFERA Portfolio — Render blueprint (Express API, free tier)
+# ASMARE Portfolio — Render blueprint (Express API, free tier)
 # Import this repo "New + > Blueprint". Render builds the Node service from
 # express-backend/ and connects it to a Supabase Postgres database.
 services:
   - type: web
-    name: tefera-portfolio-api
+    name: asmare-belay-api
     runtime: node
     plan: free
     rootDir: express-backend
@@ -17,7 +17,7 @@ services:
       - key: APP_URL
         sync: false
       - key: FRONTEND_URL
-        value: https://tefera-portfolio-node.vercel.app
+        value: https://asmare-belay.vercel.app
       # Postgres / Supabase connection string — set this manually in Render
       # (Dashboard -> Environment) or when importing the blueprint.
       - key: DATABASE_URL

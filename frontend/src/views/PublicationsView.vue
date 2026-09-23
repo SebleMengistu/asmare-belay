@@ -5,7 +5,7 @@ import { useSeo } from '../composables/useSeo'
 
 useSeo({
   title: 'Research & Publications',
-  description: 'Journal articles, conference papers and applied research by Tefera Alagaw.',
+  description: 'Journal articles, conference papers and applied research by Asmare Belay.',
 })
 
 const loading = ref(true)

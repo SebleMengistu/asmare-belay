@@ -31,7 +31,7 @@ async function bootstrap() {
 
   const app = createApp(db)
   const server = app.listen(config.port, () => {
-    console.log(`TEFERA API listening on http://localhost:${config.port} (api: /api/v1)`)
+    console.log(`ASMARE API listening on http://localhost:${config.port} (api: /api/v1)`)
   })
 
   const shutdown = async (signal) => {

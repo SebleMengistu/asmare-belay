@@ -51,11 +51,11 @@ class RolePermissionSeeder extends Seeder
         ]);
 
         // Create the primary administrator if none exists yet.
-        $email = config('portfolio.admin_email', 'admin@tefera.dev');
+        $email = config('portfolio.admin_email', 'admin@asmarebelay.dev');
 
         if (! User::where('email', $email)->exists()) {
             User::create([
-                'name' => config('portfolio.admin_name', 'TEFERA Admin'),
+                'name' => config('portfolio.admin_name', 'ASMARE Admin'),
                 'email' => $email,
                 'password' => \Illuminate\Support\Facades\Hash::make(
                     config('portfolio.admin_password', 'change-me-now')

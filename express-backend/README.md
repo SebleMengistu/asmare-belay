@@ -1,4 +1,4 @@
-# TEFERA Portfolio API (Express)
+# ASMARE Portfolio API (Express)
 
 Node.js/Express rewrite of the original Laravel API. It keeps the **exact same
 HTTP contract** as the Laravel backend (`/api/v1`, same response envelopes,

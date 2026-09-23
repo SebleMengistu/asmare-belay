@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# TEFERA Portfolio — Laravel 12 (PHP 8.2) production container
+# ASMARE Portfolio — Laravel 12 (PHP 8.2) production container
 # Build context: ./backend
 
 FROM php:8.2-apache
@@ -29,7 +29,7 @@ RUN { \
     echo 'post_max_size=64M'; \
     echo 'max_execution_time=180'; \
     echo 'expose_php=Off'; \
-  } > /usr/local/etc/php/conf.d/zz-tefera.ini
+  } > /usr/local/etc/php/conf.d/zz-asmare.ini
 
 # ---- Apache: serve from public/ ----
 RUN sed -ri \

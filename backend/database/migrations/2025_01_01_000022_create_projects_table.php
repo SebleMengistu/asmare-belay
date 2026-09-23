@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('slug')->unique();
             $table->string('summary')->nullable();
             $table->longText('description')->nullable();
-            $table->string('category')->nullable(); // web | mobile | odoo | research | open-source
+            $table->string('category')->nullable(); // web | modeling | research | water | open-source
             $table->string('repo_url')->nullable();
             $table->string('demo_url')->nullable();
             $table->json('tech_stack')->nullable();

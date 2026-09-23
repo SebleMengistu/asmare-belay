@@ -4,7 +4,7 @@ import http from '../api/http'
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null,
-    token: localStorage.getItem('tefera_token') || null,
+    token: localStorage.getItem('asmare_token') || null,
   }),
 
   getters: {
@@ -16,7 +16,7 @@ export const useAuthStore = defineStore('auth', {
       const { data } = await http.post('/auth/login', { email, password })
       this.user = data.user
       this.token = data.token
-      localStorage.setItem('tefera_token', data.token)
+      localStorage.setItem('asmare_token', data.token)
     },
 
     async fetchMe() {
@@ -31,7 +31,7 @@ export const useAuthStore = defineStore('auth', {
       } finally {
         this.user = null
         this.token = ''
-        localStorage.removeItem('tefera_token')
+        localStorage.removeItem('asmare_token')
       }
     },
   },

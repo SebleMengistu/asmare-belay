@@ -104,8 +104,8 @@ function createApp(db) {
     [
       config.frontendUrl,
       config.appUrl,
-      'https://tefera-portfolio-node.vercel.app',
-      'https://tefe-alas-portal.vercel.app',
+      'https://asmare-belay.vercel.app',
+      'https://asmare-belay.vercel.app',
       'http://localhost:5173',
       'http://localhost:5174',
       'http://localhost:5175',

@@ -30,7 +30,7 @@ async function fetchPublicRepositories(username) {
     {
       headers: {
         Accept: 'application/vnd.github+json',
-        'User-Agent': 'tefera-portfolio',
+        'User-Agent': 'asmare-portfolio',
       },
       signal: AbortSignal.timeout(10000),
     },

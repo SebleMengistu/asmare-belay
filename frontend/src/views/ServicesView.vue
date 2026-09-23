@@ -6,7 +6,7 @@ import { useSeo } from '../composables/useSeo'
 
 useSeo({
   title: 'Services',
-  description: 'Odoo consulting, implementation, training and custom software development.',
+  description: 'Hydrological modeling, GIS & remote sensing analysis, flood and drought studies, training and water resources consulting.',
 })
 
 const loading = ref(true)

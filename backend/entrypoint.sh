@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-echo "== TEFERA boot: migrate + seed + storage link =="
+echo "== ASMARE boot: migrate + seed + storage link =="
 
 # 1) The one file Laravel MUST have before touching anything.
 #    On Render free the disk is rebuilt each cold start, so this is recreated

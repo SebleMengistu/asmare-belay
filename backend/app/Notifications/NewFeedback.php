@@ -29,6 +29,6 @@ class NewFeedback extends Notification implements ShouldQueue
             ->greeting('New feedback received')
             ->line($this->feedback->message)
             ->line('From: '.($this->feedback->name ?: $this->feedback->email ?: 'Anonymous'))
-            ->salutation('TEFERA Portfolio');
+            ->salutation('ASMARE Portfolio');
     }
 }

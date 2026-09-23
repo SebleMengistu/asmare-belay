@@ -108,13 +108,13 @@ async function seedIfEmpty() {
      VALUES (?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?, ?)
      ON CONFLICT DO NOTHING`,
     userId,
-    'TEFERA',
-    'Alas',
-    config.adminName,
-    'Software Developer & IT Lecturer',
-    'I build reliable web platforms and teach the next generation of engineers.',
-    JSON.stringify(['IT Lecturer', 'Software Developer', 'Odoo Consultant', 'Researcher']),
-    JSON.stringify({ experience_years: 0, students_trained: 0 }),
+    'Asmare',
+    'Belay',
+    'Asmare Belay Ngussie',
+    'Hydrology & Water Resources Engineer | Lecturer & Researcher',
+    'Advancing sustainable water resources solutions and climate resilience through hydrological modeling, integrated water management, and geospatial analysis.',
+    JSON.stringify(['Hydrology & Water Resources Engineer', 'Lecturer & Researcher', 'Hydrological Modeler', 'GIS & Remote Sensing Specialist']),
+    JSON.stringify({ experience_years: 6, students_trained: 150 }),
     now,
     now
   )

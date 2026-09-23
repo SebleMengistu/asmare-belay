@@ -10,7 +10,7 @@ const props = defineProps({
 })
 
 const FALLBACK_BIO =
-  'I am an IT Lecturer, Software Developer, Odoo Developer & Consultant, and Researcher with a strong passion for building impactful digital solutions, empowering learners, and solving real-world problems.\n\nMy expertise spans across full-stack development, Odoo ERP implementation, system analysis, and academic research.'
+  'I am a Hydrology and Water Resources Engineer and Researcher with over 6 years of academic and applied experience in hydrological modeling, integrated water management, and geospatial analysis.\n\nMy expertise spans SWAT/SWAT+, HEC-HMS, HEC-RAS, MODFLOW, HydroGeoSphere, GEE, GIS, Remote Sensing, R and Python — applied to climate impact assessment, flood forecasting, water storage evaluation, and watershed management.'
 
 const paragraphs = computed(() =>
   String(props.profile?.bio || FALLBACK_BIO)
@@ -23,8 +23,8 @@ const TRAITS = ['Problem Solver', 'Lifelong Learner', 'Team Player', 'Quality Fo
 
 const contactRows = computed(() => [
   { icon: 'pin', label: 'Location', value: props.profile?.location || 'Kombolcha, Ethiopia' },
-  { icon: 'mail', label: 'Email', value: props.profile?.email_public || 'tefe7ala@gmail.com' },
-  { icon: 'phone', label: 'Phone', value: props.profile?.phone || '+251-932-242432' },
+  { icon: 'mail', label: 'Email', value: props.profile?.email_public || 'asmarebelay@kiot.edu.et' },
+  { icon: 'phone', label: 'Phone', value: props.profile?.phone || '+251-918-600147' },
   {
     icon: 'check',
     label: 'Availability',
@@ -34,7 +34,7 @@ const contactRows = computed(() => [
 
 const photo = computed(() => props.profile?.cover || '')
 
-const name = computed(() => props.profile?.display_name || 'Tefera Alagaw')
+const name = computed(() => props.profile?.display_name || 'Asmare Belay')
 
 const sortedEducation = computed(() =>
   [...props.educations]
@@ -126,7 +126,7 @@ const ICONS = {
         <!-- Bio -->
         <div class="lg:col-span-5">
           <p class="eyebrow">About Me</p>
-          <h2 class="section-title">Passionate about Teaching, Development &amp; Innovation</h2>
+          <h2 class="section-title">Passionate about Water, Climate Resilience &amp; Research</h2>
           <div class="mt-4 space-y-4 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
             <p v-for="(paragraph, i) in paragraphs" :key="i">{{ paragraph }}</p>
           </div>
@@ -178,7 +178,7 @@ const ICONS = {
             <p class="eyebrow">Education</p>
             <h3 class="section-title">Academic Journey</h3>
             <p class="mt-2 max-w-xl text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-              The degrees and coursework that shaped my foundation in computing, networks, and security.
+              The degrees and coursework that shaped my foundation in hydrology, hydraulics, and water resources engineering.
             </p>
           </div>
           <span class="hidden rounded-full border border-brand-100 bg-brand-50 px-4 py-1.5 text-xs font-semibold text-brand-700 sm:inline-flex dark:border-brand-600/20 dark:bg-brand-600/10 dark:text-brand-300">

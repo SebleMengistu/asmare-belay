@@ -1,8 +1,8 @@
 {
-  "name": "tefera-express-backend",
+  "name": "asmare-express-backend",
   "version": "1.0.0",
   "private": true,
-  "description": "Node/Express rewrite of the TEFERA portfolio API (Laravel-compatible contract).",
+  "description": "Node/Express rewrite of the ASMARE portfolio API (Laravel-compatible contract).",
   "main": "src/server.js",
   "engines": {
     "node": ">=22.13.0"

@@ -1,4 +1,4 @@
-# TEFERA Portfolio System — Development Status
+# ASMARE Portfolio System — Development Status
 
 ## Milestone map
 
@@ -121,5 +121,5 @@
 5. Production hardening pass (rate limits on public POST routes, security
    headers middleware, HTTPS/HSTS notes, media S3 disk option).
 6. Remaining spec modules behind existing abstractions: teaching/research/
-   Odoo case-study content types, blog revision history, blog-to-LinkedIn
+   Water-resources case-study content types, blog revision history
    sharing workflow, feedback analytics conversion, audit log UI.

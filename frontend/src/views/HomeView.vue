@@ -73,14 +73,14 @@ async function load() {
       raw: true,
       title: p.display_name
         ? (p.headline ? `${p.display_name} — ${p.headline}` : p.display_name)
-        : 'Tefera Alagaw — IT Lecturer, Software Developer & Researcher',
-      description: summary.slice(0, 158) || 'IT Lecturer, Software Developer, Odoo Developer & Consultant, Researcher.',
+        : 'Asmare Belay — Hydrology & Water Resources Engineer, Lecturer & Researcher',
+      description: summary.slice(0, 158) || 'Hydrology & Water Resources Engineer, Lecturer & Researcher.',
       image: p.avatar,
       type: 'profile',
       jsonLd: {
         '@context': 'https://schema.org',
         '@type': 'Person',
-        name: p.display_name || 'Tefera Alagaw',
+        name: p.display_name || 'Asmare Belay',
         jobTitle: p.headline || undefined,
         description: summary || undefined,
         image: p.avatar || undefined,

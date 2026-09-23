@@ -49,7 +49,9 @@ export function categoryLabel(category) {
   if (!category) return 'Project'
   const labels = {
     web: 'Web Application',
-    odoo: 'Odoo Implementation',
+    modeling: 'Hydrological Modeling',
+    research: 'Applied Research',
+    water: 'Water Resources',
     api: 'API Integration',
     ecommerce: 'E-Commerce',
   }

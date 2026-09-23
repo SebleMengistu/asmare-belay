@@ -5,7 +5,7 @@ import http from '../api/http'
 import { useSeo } from '../composables/useSeo'
 import { stackOf } from '../utils/format'
 
-useSeo({ title: 'Projects', description: 'Software projects, case studies and Odoo implementations.' })
+useSeo({ title: 'Projects', description: 'Water resources projects, hydrological modeling case studies and applied research.' })
 import BasePagination from '../components/BasePagination.vue'
 
 const loading = ref(true)

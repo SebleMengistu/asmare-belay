@@ -13,8 +13,8 @@ return [
     |
     */
 
-    'admin_email' => env('ADMIN_EMAIL', 'admin@tefera.dev'),
-    'admin_name' => env('ADMIN_NAME', 'TEFERA Admin'),
+    'admin_email' => env('ADMIN_EMAIL', 'admin@asmarebelay.dev'),
+    'admin_name' => env('ADMIN_NAME', 'ASMARE Admin'),
     'admin_password' => env('ADMIN_PASSWORD', 'change-me-now'),
 
     // Absolute URL of the Vue SPA when hosted on a different origin than the
@@ -22,8 +22,8 @@ return [
     'frontend_url' => env('FRONTEND_URL'),
 
     'seo' => [
-        'title' => env('SEO_TITLE', 'TEFERA — Software Developer & IT Lecturer'),
-        'description' => env('SEO_DESCRIPTION', 'Portfolio of an IT Lecturer, Software Developer, Odoo Consultant and Researcher.'),
+        'title' => env('SEO_TITLE', 'ASMARE — Hydrology & Water Resources Engineer'),
+        'description' => env('SEO_DESCRIPTION', 'Portfolio of a Hydrology & Water Resources Engineer, Lecturer and Researcher.'),
         'keywords' => env('SEO_KEYWORDS'),
         'image' => env('SEO_IMAGE'),
     ],

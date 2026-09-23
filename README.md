@@ -1,7 +1,7 @@
-# TEFERA Portfolio System
+# ASMARE Portfolio System
 
-A premium, production-ready full-stack portfolio and CMS platform for an IT Lecturer,
-Software Developer, Odoo Developer/Consultant, and Researcher.
+A premium, production-ready full-stack portfolio and CMS platform for a Hydrology &
+Water Resources Engineer, Lecturer, and Researcher.
 
 ## Stack
 
@@ -15,7 +15,7 @@ Software Developer, Odoo Developer/Consultant, and Researcher.
 ## Repository Layout
 
 ```
-tefera/
+asmare/
 ├── backend/    # Laravel 12 JSON API + SEO meta-shell renderer
 ├── frontend/   # Vue 3 SPA (public portfolio + admin dashboard)
 ├── deploy/     # Nginx, Supervisor, cron, backup configs

@@ -5,7 +5,7 @@ import { useSeo } from '../composables/useSeo'
 
 useSeo({
   title: 'Teaching & Experience',
-  description: 'Academic career, teaching highlights, education and certifications of Tefera Alagaw.',
+  description: 'Academic career, teaching highlights, education and certifications of Asmare Belay.',
 })
 
 const loading = ref(true)

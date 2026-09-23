@@ -42,7 +42,7 @@ const {
 } = require('../lib/media')
 
 const SKILL_CATEGORIES =
-  'frontend,backend,database,tools,teaching,security,networking,lms,odoo,general'
+  'modeling,gis,programming,research,tools,frontend,backend,database,teaching,general'
 
 const SIDE_EFFECT_KEYS = new Set([
   'skill_ids',

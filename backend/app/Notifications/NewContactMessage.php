@@ -27,6 +27,6 @@ class NewContactMessage extends Notification implements ShouldQueue
             ->greeting('A new message arrived from '.$this->message->name)
             ->line($this->message->message)
             ->line('Reply to: '.$this->message->email)
-            ->salutation('TEFERA Portfolio');
+            ->salutation('ASMARE Portfolio');
     }
 }

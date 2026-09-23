@@ -1,9 +1,9 @@
-# TEFERA Portfolio System — Architecture
+# ASMARE Portfolio System — Architecture
 
 ## Overview
 
-TEFERA is a production-ready, headless portfolio + CMS platform for an IT
-Lecturer, Software Developer, Odoo Consultant and Researcher. It exposes a
+ASMARE is a production-ready, headless portfolio + CMS platform for a water resources
+Lecturer and Researcher. It exposes a
 JSON API consumed by a Vue SPA (public portfolio + admin dashboard) and ships
 an SEO meta-shell for crawlers.
 

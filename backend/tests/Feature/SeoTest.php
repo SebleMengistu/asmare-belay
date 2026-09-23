@@ -17,7 +17,7 @@ class SeoTest extends TestCase
         parent::setUp();
 
         $this->seed(DatabaseSeeder::class);
-        config()->set('app.url', 'https://tefera.example.test');
+        config()->set('app.url', 'https://asmare.example.test');
     }
 
     public function test_robots_txt_disallows_admin_and_links_the_sitemap(): void
@@ -29,7 +29,7 @@ class SeoTest extends TestCase
 
         $this->assertStringContainsString('Disallow: /admin', $response->getContent());
         $this->assertStringContainsString(
-            'Sitemap: https://tefera.example.test/sitemap.xml',
+            'Sitemap: https://asmare.example.test/sitemap.xml',
             $response->getContent(),
         );
     }
@@ -47,13 +47,13 @@ class SeoTest extends TestCase
         $this->assertStringContainsString('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">', $body);
 
         foreach ([
-            'https://tefera.example.test/',
-            'https://tefera.example.test/projects',
-            'https://tefera.example.test/posts',
-            'https://tefera.example.test/services',
-            'https://tefera.example.test/contact',
-            'https://tefera.example.test/projects/'.$project->slug,
-            'https://tefera.example.test/posts/'.$post->slug,
+            'https://asmare.example.test/',
+            'https://asmare.example.test/projects',
+            'https://asmare.example.test/posts',
+            'https://asmare.example.test/services',
+            'https://asmare.example.test/contact',
+            'https://asmare.example.test/projects/'.$project->slug,
+            'https://asmare.example.test/posts/'.$post->slug,
         ] as $loc) {
             $this->assertStringContainsString("<loc>{$loc}</loc>", $body);
         }

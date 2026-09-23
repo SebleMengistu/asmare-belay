@@ -8,11 +8,11 @@ import { computed } from 'vue'
  */
 
 export const REF_URLS = {
-  linkedin: 'https://linkedin.com/in/tefera-alagaw-a95073230',
-  github: 'https://github.com/Tefe-Ala',
-  email: 'tefe7ala@gmail.com',
+  linkedin: 'https://linkedin.com/in/asmare-belay',
+  github: 'https://github.com/SebleMengistu',
+  email: 'asmarebelay@kiot.edu.et',
   location: 'Kombolcha, Ethiopia',
-  phone: '+251-932-242432',
+  phone: '+251-918-600147',
 }
 
 /** Fill-style icon paths (footer + dense contexts). */

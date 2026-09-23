@@ -4,7 +4,7 @@ import { ref, watchEffect } from 'vue'
  * Tiny global theme store — persists the choice and toggles the `dark`
  * class on <html> (wired to the Tailwind `@custom-variant dark` in main.css).
  */
-const STORAGE_KEY = 'tefera-theme'
+const STORAGE_KEY = 'asmare-theme'
 
 function initialTheme() {
   if (typeof localStorage === 'undefined') return 'light'
