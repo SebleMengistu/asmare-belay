@@ -25,6 +25,9 @@ const {
   PUBLICATIONS,
   PROJECTS,
   POSTS,
+  ACHIEVEMENTS,
+  LANGUAGES,
+  RESEARCH,
 } = require('../lib/cvData')
 
 function slugify(value) {
@@ -100,16 +103,28 @@ async function upsertProfile() {
   return inserted.id
 }
 
+/**
+ * Skills are replace-on-reseed: the seeded catalog is authoritative, and
+ * user-created rows (ids beyond the seeded set) are preserved.
+ */
 async function seedSkills(profileId) {
-  if ((await db.count('skills')) > 0) return console.log('skills: already populated, skipping')
+  const seededNames = SKILLS.map(([name]) => name)
+  const existing = await db.all('SELECT id, name FROM skills ORDER BY id')
+  const byName = new Map(existing.map((row) => [row.name, row.id]))
+
   for (const [i, [name, category, level]] of SKILLS.entries()) {
-    await db.run(
-      `INSERT INTO skills (profile_id, name, category, level, display_order, is_active)
-       VALUES (?, ?, ?, ?, ?, TRUE)`,
-      profileId, name, category, level, i + 1,
-    )
+    const id = byName.get(name)
+    if (id) {
+      await db.run('UPDATE skills SET category = ?, level = ?, display_order = ?, updated_at = NOW() WHERE id = ?', category, level, i + 1, id)
+    } else {
+      await db.run(
+        `INSERT INTO skills (profile_id, name, category, level, display_order, is_active)
+         VALUES (?, ?, ?, ?, ?, TRUE)`,
+        profileId, name, category, level, i + 1,
+      )
+    }
   }
-  console.log(`skills: inserted ${SKILLS.length}`)
+  console.log(`skills: ensured ${SKILLS.length} seeded rows (${existing.length} existed before)`)
 }
 
 async function seedExperiences(profileId) {
@@ -143,15 +158,20 @@ async function seedEducations(profileId) {
 }
 
 async function seedCertifications(profileId) {
-  if ((await db.count('certifications')) > 0) return console.log('certifications: already populated, skipping')
-  for (const [i, [name, issuer]] of CERTIFICATIONS.entries()) {
-    await db.run(
-      `INSERT INTO certifications (profile_id, name, issuer, display_order, is_active)
-       VALUES (?, ?, ?, ?, TRUE)`,
-      profileId, name, issuer, i + 1,
-    )
+  const existing = await db.all('SELECT id, name FROM certifications ORDER BY id')
+  const byName = new Map(existing.map((row) => [row.name, row.id]))
+  for (const [i, [name, issuer, category]] of CERTIFICATIONS.entries()) {
+    const id = byName.get(name)
+    if (id) {
+      await db.run('UPDATE certifications SET issuer = ?, category = ?, display_order = ?, updated_at = NOW() WHERE id = ?', issuer, category ?? null, i + 1, id)
+    } else {
+      await db.run(
+        'INSERT INTO certifications (profile_id, name, issuer, category, display_order, is_active) VALUES (?, ?, ?, ?, ?, TRUE)',
+        profileId, name, issuer, category ?? null, i + 1,
+      )
+    }
   }
-  console.log(`certifications: inserted ${CERTIFICATIONS.length}`)
+  console.log(`certifications: ensured ${CERTIFICATIONS.length} seeded rows`)
 }
 
 async function seedPublications(profileId) {
@@ -169,18 +189,71 @@ async function seedPublications(profileId) {
 }
 
 async function seedProjects(profileId) {
-  if ((await db.count('projects')) > 0) return console.log('projects: already populated, skipping')
   for (const p of PROJECTS) {
+    const existing = await db.get('SELECT id FROM projects WHERE slug = ?', p.slug)
+    if (existing) {
+      await db.run(
+        `UPDATE projects SET
+           title = ?, summary = ?, description = ?, category = ?,
+           role = ?, organization = ?, status = ?,
+           repo_url = ?, demo_url = ?, tech_stack = ?,
+           featured = ?, display_order = ?, updated_at = NOW()
+         WHERE id = ?`,
+        p.title, p.summary, p.description, p.category,
+        p.role ?? null, p.organization ?? null, p.status ?? null,
+        p.repo_url ?? null, p.demo_url ?? null, JSON.stringify(p.tech_stack ?? []),
+        p.featured ?? false, p.display_order ?? 0, existing.id,
+      )
+    } else {
+      await db.run(
+        `INSERT INTO projects
+           (profile_id, title, slug, summary, description, category, role,
+            organization, status, repo_url, demo_url, tech_stack, featured,
+            display_order, is_active)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE)`,
+        profileId, p.title, p.slug, p.summary, p.description, p.category,
+        p.role ?? null, p.organization ?? null, p.status ?? null,
+        p.repo_url ?? null, p.demo_url ?? null, JSON.stringify(p.tech_stack ?? []),
+        p.featured ?? false, p.display_order ?? 0,
+      )
+    }
+  }
+  console.log(`projects: ensured ${PROJECTS.length} seeded rows`)
+}
+
+async function seedAchievements(profileId) {
+  if ((await db.count('achievements')) > 0) return console.log('achievements: already populated, skipping')
+  for (const a of ACHIEVEMENTS) {
     await db.run(
-      `INSERT INTO projects
-         (profile_id, title, slug, summary, description, category, repo_url,
-          demo_url, tech_stack, featured, display_order, is_active)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE)`,
-      profileId, p.title, p.slug, p.summary, p.description, p.category,
-      p.repo_url, p.demo_url, JSON.stringify(p.tech_stack), p.featured, p.display_order,
+      `INSERT INTO achievements
+         (profile_id, title, organization, achieved_at, description, category, display_order, is_active)
+       VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)`,
+      profileId, a.title, a.organization, a.achieved_at, a.description, a.category, a.display_order,
     )
   }
-  console.log(`projects: inserted ${PROJECTS.length}`)
+  console.log(`achievements: inserted ${ACHIEVEMENTS.length}`)
+}
+
+async function seedLanguages(profileId) {
+  if ((await db.count('languages')) > 0) return console.log('languages: already populated, skipping')
+  for (const l of LANGUAGES) {
+    await db.run(
+      'INSERT INTO languages (profile_id, name, proficiency, display_order, is_active) VALUES (?, ?, ?, ?, TRUE)',
+      profileId, l.name, l.proficiency, l.display_order,
+    )
+  }
+  console.log(`languages: inserted ${LANGUAGES.length}`)
+}
+
+async function seedResearch(profileId) {
+  if ((await db.count('research')) > 0) return console.log('research: already populated, skipping')
+  for (const r of RESEARCH) {
+    await db.run(
+      'INSERT INTO research (profile_id, topic, description, methods, url, display_order, is_active) VALUES (?, ?, ?, ?, ?, ?, TRUE)',
+      profileId, r.topic, r.description, JSON.stringify(r.methods ?? []), r.url ?? null, r.display_order,
+    )
+  }
+  console.log(`research: inserted ${RESEARCH.length}`)
 }
 
 async function seedPosts(profileId) {
@@ -209,6 +282,41 @@ async function seedPosts(profileId) {
   console.log(`posts: inserted ${POSTS.length}`)
 }
 
+async function seedAchievements(profileId) {
+  if ((await db.count('achievements')) > 0) return console.log('achievements: already populated, skipping')
+  for (const a of ACHIEVEMENTS) {
+    await db.run(
+      `INSERT INTO achievements
+         (profile_id, title, organization, achieved_at, description, category, display_order, is_active)
+       VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)`,
+      profileId, a.title, a.organization, a.achieved_at, a.description, a.category, a.display_order,
+    )
+  }
+  console.log(`achievements: inserted ${ACHIEVEMENTS.length}`)
+}
+
+async function seedLanguages(profileId) {
+  if ((await db.count('languages')) > 0) return console.log('languages: already populated, skipping')
+  for (const l of LANGUAGES) {
+    await db.run(
+      'INSERT INTO languages (profile_id, name, proficiency, display_order, is_active) VALUES (?, ?, ?, ?, TRUE)',
+      profileId, l.name, l.proficiency, l.display_order,
+    )
+  }
+  console.log(`languages: inserted ${LANGUAGES.length}`)
+}
+
+async function seedResearch(profileId) {
+  if ((await db.count('research')) > 0) return console.log('research: already populated, skipping')
+  for (const r of RESEARCH) {
+    await db.run(
+      'INSERT INTO research (profile_id, topic, description, methods, url, display_order, is_active) VALUES (?, ?, ?, ?, ?, ?, TRUE)',
+      profileId, r.topic, r.description, JSON.stringify(r.methods ?? []), r.url ?? null, r.display_order,
+    )
+  }
+  console.log(`research: inserted ${RESEARCH.length}`)
+}
+
 async function main() {
   await db.exec(SCHEMA)
   console.log('schema: applied')
@@ -224,6 +332,9 @@ async function main() {
   await seedPublications(profileId)
   await seedProjects(profileId)
   await seedPosts(profileId)
+  await seedAchievements(profileId)
+  await seedLanguages(profileId)
+  await seedResearch(profileId)
 
   console.log('Done.')
 }

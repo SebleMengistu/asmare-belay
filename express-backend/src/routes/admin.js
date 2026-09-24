@@ -31,6 +31,10 @@ const {
   serializeProfile,
   serializeContactMessage,
   serializeFeedback,
+  serializeAchievement,
+  serializeLanguage,
+  serializeConference,
+  serializeResearch,
 } = require('../lib/serialize')
 const {
   storeUpload,
@@ -592,6 +596,77 @@ module.exports = function createAdminRouter(db) {
       }),
       columns: { integer: ['rating', 'display_order'], boolean: ['is_active'] },
     },
+    {
+      name: 'achievements',
+      table: 'achievements',
+      singular: 'Achievement',
+      serialize: serializeAchievement,
+      profileScoped: true,
+      normalize: ['url'],
+      rules: () => ({
+        title: ['required', 'string', 'max:255'],
+        organization: ['nullable', 'string', 'max:255'],
+        achieved_at: ['nullable', 'date'],
+        description: ['nullable', 'string'],
+        category: ['nullable', 'string', 'max:64'],
+        image: ['nullable', 'string'],
+        url: ['nullable', 'url', 'max:255'],
+        display_order: ['nullable', 'integer'],
+        is_active: ['nullable', 'boolean'],
+      }),
+      columns: { integer: ['display_order'], boolean: ['is_active'] },
+    },
+    {
+      name: 'languages',
+      table: 'languages',
+      singular: 'Language',
+      serialize: serializeLanguage,
+      profileScoped: true,
+      rules: () => ({
+        name: ['required', 'string', 'max:255'],
+        proficiency: ['nullable', 'string', 'max:255'],
+        display_order: ['nullable', 'integer'],
+        is_active: ['nullable', 'boolean'],
+      }),
+      columns: { integer: ['display_order'], boolean: ['is_active'] },
+    },
+    {
+      name: 'conferences',
+      table: 'conferences',
+      singular: 'Conference',
+      serialize: serializeConference,
+      profileScoped: true,
+      normalize: ['url'],
+      rules: () => ({
+        name: ['required', 'string', 'max:255'],
+        event_date: ['nullable', 'date'],
+        location: ['nullable', 'string', 'max:255'],
+        role: ['nullable', 'string', 'max:255'],
+        topic: ['nullable', 'string', 'max:255'],
+        description: ['nullable', 'string'],
+        url: ['nullable', 'url', 'max:255'],
+        display_order: ['nullable', 'integer'],
+        is_active: ['nullable', 'boolean'],
+      }),
+      columns: { integer: ['display_order'], boolean: ['is_active'] },
+    },
+    {
+      name: 'research',
+      table: 'research',
+      singular: 'Research theme',
+      serialize: serializeResearch,
+      profileScoped: true,
+      normalize: ['url'],
+      rules: () => ({
+        topic: ['required', 'string', 'max:255'],
+        description: ['nullable', 'string'],
+        methods: ['nullable', 'array'],
+        url: ['nullable', 'url', 'max:255'],
+        display_order: ['nullable', 'integer'],
+        is_active: ['nullable', 'boolean'],
+      }),
+      columns: { json: ['methods'], integer: ['display_order'], boolean: ['is_active'] },
+    },
   ]
 
   for (const cfg of SIMPLE) {
@@ -686,8 +761,19 @@ module.exports = function createAdminRouter(db) {
     summary: ['nullable', 'string', 'max:500'],
     description: ['nullable', 'string'],
     category: ['nullable', 'string', 'max:100'],
+    role: ['nullable', 'string', 'max:255'],
+    organization: ['nullable', 'string', 'max:255'],
+    status: ['nullable', 'string', 'max:64'],
+    problem: ['nullable', 'string'],
+    objectives: ['nullable', 'array'],
+    methods: ['nullable', 'array'],
+    challenges: ['nullable', 'array'],
+    solutions: ['nullable', 'array'],
+    results: ['nullable', 'array'],
     repo_url: ['nullable', 'url', 'max:255'],
     demo_url: ['nullable', 'url', 'max:255'],
+    documentation_url: ['nullable', 'url', 'max:255'],
+    video_url: ['nullable', 'url', 'max:255'],
     tech_stack: ['nullable', 'array'],
     featured: ['nullable', 'boolean'],
     start_date: ['nullable', 'date'],
@@ -757,7 +843,7 @@ module.exports = function createAdminRouter(db) {
           : await uniqueSlug(db, 'projects', values.title)
 
       const columns = buildColumns(values, {
-        json: ['tech_stack'],
+        json: ['tech_stack', 'objectives', 'methods', 'challenges', 'solutions', 'results'],
         boolean: ['featured', 'is_active'],
       })
       delete columns.slug
@@ -805,7 +891,7 @@ module.exports = function createAdminRouter(db) {
       }
 
       const columns = buildColumns(values, {
-        json: ['tech_stack'],
+        json: ['tech_stack', 'objectives', 'methods', 'challenges', 'solutions', 'results'],
         boolean: ['featured', 'is_active'],
       })
       await updateRow('projects', existing.id, columns)

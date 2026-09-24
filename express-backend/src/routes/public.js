@@ -21,6 +21,10 @@ const {
   serializePost,
   serializeProject,
   serializeProfile,
+  serializeAchievement,
+  serializeLanguage,
+  serializeConference,
+  serializeResearch,
 } = require('../lib/serialize')
 const { issueToken, requireAuth, rolesFor, permissionsFor } = require('../lib/auth')
 
@@ -136,6 +140,15 @@ module.exports = function createPublicRouter(db) {
         recent_posts: recentPosts,
         testimonials,
         services,
+        achievements: await cache.remember(
+          'achievements_home',
+          async () => {
+            const rows = await db.all(
+              'SELECT * FROM achievements WHERE is_active = TRUE ORDER BY display_order, id LIMIT 3'
+            )
+            return rows.map(serializeAchievement)
+          }
+        ),
       })
     })
   )
@@ -238,6 +251,103 @@ module.exports = function createPublicRouter(db) {
         req.params.slug
       )
       res.ok(project)
+    })
+  )
+
+  /* ----------------------------------------------------------- achievements */
+
+  router.get(
+    '/achievements',
+    wrap(async (req, res) => {
+      const payload = await cache.remember('achievements', async () => {
+        const rows = await db.all(
+          'SELECT * FROM achievements WHERE is_active = TRUE ORDER BY display_order, id'
+        )
+        return rows.map(serializeAchievement)
+      })
+      res.ok(payload)
+    })
+  )
+
+  /* -------------------------------------------------------------- languages */
+
+  router.get(
+    '/languages',
+    wrap(async (req, res) => {
+      const payload = await cache.remember('languages', async () => {
+        const rows = await db.all(
+          'SELECT * FROM languages WHERE is_active = TRUE ORDER BY display_order, id'
+        )
+        return rows.map(serializeLanguage)
+      })
+      res.ok(payload)
+    })
+  )
+
+  /* ----------------------------------------------------------- conferences */
+
+  router.get(
+    '/conferences',
+    wrap(async (req, res) => {
+      const payload = await cache.remember('conferences', async () => {
+        const rows = await db.all(
+          'SELECT * FROM conferences WHERE is_active = TRUE ORDER BY event_date DESC, display_order, id'
+        )
+        return rows.map(serializeConference)
+      })
+      res.ok(payload)
+    })
+  )
+
+  /* -------------------------------------------------------------- research */
+
+  router.get(
+    '/research',
+    wrap(async (req, res) => {
+      const payload = await cache.remember('research', async () => {
+        const rows = await db.all(
+          'SELECT * FROM research WHERE is_active = TRUE ORDER BY display_order, id'
+        )
+        return rows.map(serializeResearch)
+      })
+      res.ok(payload)
+    })
+  )
+
+  /* ------------------------------------------------------------------- cv */
+
+  router.get(
+    '/cv',
+    wrap(async (req, res) => {
+      const payload = await cache.remember('cv', async () => {
+        const profile = await firstProfile()
+        const row = profile
+          ? await db.get(
+              "SELECT * FROM media WHERE model_type = 'Profile' AND model_id = ? AND collection_name = 'resume' ORDER BY id DESC LIMIT 1",
+              profile.id
+            )
+          : null
+        return {
+          available: Boolean(row || (profile && profile.meta && profile.meta.cv_url)),
+          url: row ? undefined : (profile && profile.meta && profile.meta.cv_url) || null,
+          updated_at: row ? toIso(sqliteToIso(row.updated_at || row.created_at)) : null,
+          file_name: row ? row.file_name : 'Asmare-Belay-CV.pdf',
+        }
+      })
+      res.ok(payload)
+    })
+  )
+
+  router.post(
+    '/cv/download',
+    wrap(async (req, res) => {
+      await db.run(
+        'INSERT INTO analytics_events (event, path, occurred_at) VALUES (?, ?, ?)',
+        'cv_download',
+        '/cv',
+        isoNow()
+      )
+      res.noContent()
     })
   )
 
@@ -423,6 +533,8 @@ module.exports = function createPublicRouter(db) {
         name: ['required', 'string', 'max:255'],
         email: ['required', 'email', 'max:255'],
         phone: ['nullable', 'string', 'max:32'],
+        organization: ['nullable', 'string', 'max:255'],
+        reason: ['nullable', 'string', 'max:64'],
         subject: ['nullable', 'string', 'max:255'],
         message: ['required', 'string', 'min:10'],
       })
@@ -430,11 +542,13 @@ module.exports = function createPublicRouter(db) {
 
       const now = isoNow()
       await db.run(
-        `INSERT INTO contact_messages (name, email, phone, subject, message, ip, device, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO contact_messages (name, email, phone, organization, reason, subject, message, ip, device, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         values.name,
         values.email,
         values.phone ?? null,
+        values.organization ?? null,
+        values.reason ?? null,
         values.subject || 'General inquiry',
         values.message,
         req.ip || null,

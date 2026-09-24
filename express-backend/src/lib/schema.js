@@ -138,6 +138,7 @@ CREATE TABLE IF NOT EXISTS certifications (
   profile_id INTEGER,
   name TEXT NOT NULL,
   issuer TEXT NOT NULL,
+  category TEXT,
   credential_url TEXT,
   credential_id TEXT,
   issued_date TEXT,
@@ -351,6 +352,87 @@ CREATE TABLE IF NOT EXISTS personal_access_tokens (
 CREATE INDEX IF NOT EXISTS skills_category_active_idx ON skills (category, is_active);
 CREATE INDEX IF NOT EXISTS analytics_event_idx ON analytics_events (event);
 CREATE INDEX IF NOT EXISTS analytics_occurred_idx ON analytics_events (occurred_at);
+
+-- ── Premium profile structure (achievements, languages, conferences, research) ──
+CREATE TABLE IF NOT EXISTS achievements (
+  id SERIAL PRIMARY KEY,
+  profile_id INTEGER,
+  title TEXT NOT NULL,
+  organization TEXT,
+  achieved_at TEXT,
+  description TEXT,
+  category TEXT,
+  image TEXT,
+  url TEXT,
+  display_order INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS languages (
+  id SERIAL PRIMARY KEY,
+  profile_id INTEGER,
+  name TEXT NOT NULL,
+  proficiency TEXT,
+  display_order INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS conferences (
+  id SERIAL PRIMARY KEY,
+  profile_id INTEGER,
+  name TEXT NOT NULL,
+  event_date TEXT,
+  location TEXT,
+  role TEXT,
+  topic TEXT,
+  description TEXT,
+  url TEXT,
+  display_order INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS research (
+  id SERIAL PRIMARY KEY,
+  profile_id INTEGER,
+  topic TEXT NOT NULL,
+  description TEXT,
+  methods JSONB,
+  url TEXT,
+  display_order INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ
+);
+
+-- Richer project case studies
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS role TEXT;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS organization TEXT;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS status TEXT;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS problem TEXT;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS objectives JSONB;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS methods JSONB;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS challenges JSONB;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS solutions JSONB;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS results JSONB;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS documentation_url TEXT;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS video_url TEXT;
+
+-- Professional vs leadership timelines + employment type
+ALTER TABLE experiences ADD COLUMN IF NOT EXISTS employment_type TEXT;
+ALTER TABLE experiences ADD COLUMN IF NOT EXISTS timeline_type TEXT NOT NULL DEFAULT 'professional';
+
+-- Structured contact enquiries
+ALTER TABLE contact_messages ADD COLUMN IF NOT EXISTS organization TEXT;
+ALTER TABLE contact_messages ADD COLUMN IF NOT EXISTS reason TEXT;
+
+-- Filterable certification categories
+ALTER TABLE certifications ADD COLUMN IF NOT EXISTS category TEXT;
 `
 
 module.exports = { SCHEMA }

@@ -28,6 +28,8 @@ function serializeExperience(row) {
     company: row.company,
     company_url: row.company_url,
     location: row.location,
+    employment_type: row.employment_type ?? null,
+    timeline_type: row.timeline_type || 'professional',
     start_date: dateOut(row.start_date),
     end_date: dateOut(row.end_date),
     current: Boolean(Number(row.current)),
@@ -59,6 +61,7 @@ function serializeCertification(row) {
     id: row.id,
     name: row.name,
     issuer: row.issuer,
+    category: row.category ?? null,
     credential_url: row.credential_url,
     credential_id: row.credential_id,
     issued_date: dateOut(row.issued_date),
@@ -179,8 +182,19 @@ async function serializeProject(db, row, req) {
     summary: row.summary,
     description: row.description,
     category: row.category,
+    role: row.role ?? null,
+    organization: row.organization ?? null,
+    status: row.status ?? null,
+    problem: row.problem ?? null,
+    objectives: list(row.objectives),
+    methods: list(row.methods),
+    challenges: list(row.challenges),
+    solutions: list(row.solutions),
+    results: list(row.results),
     repo_url: row.repo_url,
     demo_url: row.demo_url,
+    documentation_url: row.documentation_url ?? null,
+    video_url: row.video_url ?? null,
     tech_stack: list(row.tech_stack),
     featured: bool(row.featured),
     display_order: row.display_order,
@@ -221,12 +235,66 @@ async function serializeProfile(db, row, req) {
   }
 }
 
+function serializeAchievement(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    organization: row.organization,
+    achieved_at: dateOut(row.achieved_at),
+    description: row.description,
+    category: row.category,
+    image: row.image,
+    url: row.url,
+    display_order: row.display_order,
+    is_active: bool(row.is_active),
+  }
+}
+
+function serializeLanguage(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    proficiency: row.proficiency,
+    display_order: row.display_order,
+    is_active: bool(row.is_active),
+  }
+}
+
+function serializeConference(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    event_date: dateOut(row.event_date),
+    location: row.location,
+    role: row.role,
+    topic: row.topic,
+    description: row.description,
+    url: row.url,
+    display_order: row.display_order,
+    is_active: bool(row.is_active),
+  }
+}
+
+function serializeResearch(row) {
+  return {
+    id: row.id,
+    topic: row.topic,
+    description: row.description,
+    methods: list(row.methods),
+    url: row.url,
+    display_order: row.display_order,
+    is_active: bool(row.is_active),
+  }
+}
+
 function serializeContactMessage(row) {
   return {
     id: row.id,
     name: row.name,
     email: row.email,
     phone: row.phone,
+    organization: row.organization ?? null,
+    reason: row.reason ?? null,
     subject: row.subject,
     message: row.message,
     ip: row.ip,
@@ -264,6 +332,10 @@ module.exports = {
   serializeProfile,
   serializeContactMessage,
   serializeFeedback,
+  serializeAchievement,
+  serializeLanguage,
+  serializeConference,
+  serializeResearch,
   skillsForProject,
   tagsForPost,
 }
