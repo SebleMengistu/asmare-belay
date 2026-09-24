@@ -289,8 +289,6 @@ const nav = [
       { label: 'Publications', to: '/publications' },
     ],
   },
-  { label: 'Projects', to: '/projects' },
-  { label: 'Skills', to: '/technologies' },
   {
     label: 'Credentials',
     children: [
@@ -301,7 +299,6 @@ const nav = [
   },
   { label: 'Services', to: '/services' },
   { label: 'Blog', to: '/posts' },
-  { label: 'CV', to: '/cv' },
   { label: 'Contact', to: '/contact' },
 ]
 
