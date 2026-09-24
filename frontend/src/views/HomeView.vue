@@ -4,9 +4,12 @@ import http from '../api/http'
 import { useSeo } from '../composables/useSeo'
 import HeroSection from '../components/home/HeroSection.vue'
 import StatsBar from '../components/home/StatsBar.vue'
+import QuickInfoSection from '../components/home/QuickInfoSection.vue'
 import AboutSection from '../components/home/AboutSection.vue'
 import FeaturedProjects from '../components/home/FeaturedProjects.vue'
 import InsightsSection from '../components/home/InsightsSection.vue'
+import ResearchSection from '../components/home/ResearchSection.vue'
+import AchievementsSection from '../components/home/AchievementsSection.vue'
 import BlogSection from '../components/home/BlogSection.vue'
 import CtaBanner from '../components/home/CtaBanner.vue'
 
@@ -20,8 +23,11 @@ const skills = ref([])
 const experiences = ref([])
 const educations = ref([])
 const certifications = ref([])
+const research = ref([])
+const achievements = ref([])
 
-// Counter values for the stats bar — API meta overrides the mockup defaults.
+// Counter values for the stats bar — every number comes from the live
+// database (counts of real rows); nothing is invented.
 const stats = computed(() => {
   const meta = profile.value?.meta || {}
   const num = (value, fallback) => {
@@ -30,11 +36,11 @@ const stats = computed(() => {
   }
 
   return [
-    { target: num(meta.experience_years, 10), value: 0, suffix: '+', label: 'Years Experience', icon: 'experience' },
-    { target: num(meta.projects_completed, 40), value: 0, suffix: '+', label: 'Projects Completed', icon: 'projects' },
-    { target: num(meta.research_publications, 15), value: 0, suffix: '+', label: 'Research Publications', icon: 'publications' },
-    { target: num(meta.technologies, 20), value: 0, suffix: '+', label: 'Technologies', icon: 'technologies' },
-    { target: num(meta.students_trained, 500), value: 0, suffix: '+', label: 'Students Trained', icon: 'students' },
+    { target: num(meta.experience_years, 6), value: 0, suffix: '+', label: 'Years Experience', icon: 'experience' },
+    { target: num(meta.projects_completed, featured.value.length), value: 0, suffix: '', label: 'Projects', icon: 'projects' },
+    { target: num(meta.research_publications, publications.value.length), value: 0, suffix: '', label: 'Publications', icon: 'publications' },
+    { target: num(meta.technologies, skills.value.length), value: 0, suffix: '', label: 'Technologies', icon: 'technologies' },
+    { target: num(meta.students_trained, 0), value: 0, suffix: '+', label: 'Students & Professionals Trained', icon: 'students' },
   ]
 })
 
@@ -50,12 +56,14 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const [home, pubs, skillData] = await Promise.all([
+    const [home, pubs, skillData, researchRes, achievementsRes] = await Promise.all([
       http.get('/'),
       // Publications are decorative on the homepage — never block the page.
       http.get('/publications').catch(() => ({ data: [] })),
       // Skills + experiences (bundled in one endpoint).
       http.get('/skills').catch(() => ({ data: {} })),
+      http.get('/research').catch(() => ({ data: [] })),
+      http.get('/achievements').catch(() => ({ data: [] })),
     ])
 
     profile.value = home.data.profile ?? null
@@ -66,6 +74,8 @@ async function load() {
     experiences.value = skillData.data.experiences ?? []
     educations.value = skillData.data.educations ?? []
     certifications.value = skillData.data.certifications ?? []
+    research.value = researchRes.data ?? []
+    achievements.value = achievementsRes.data ?? (home.data.achievements ?? [])
 
     const p = profile.value || {}
     const summary = String(p.tagline || p.bio || '').trim()
@@ -108,15 +118,20 @@ onMounted(load)
       </p>
     </div>
 
+    <!-- §28 homepage order: hero → stats → quick info → about → featured
+         projects → experience → research → publications → skills →
+         education → certifications → achievements → services → blog → CTA -->
     <HeroSection :profile="profile" />
     <StatsBar :stats="stats" />
+    <QuickInfoSection :profile="profile" :loading="loading" />
     <AboutSection :profile="profile" :educations="educations" :certifications="certifications" :loading="loading" />
     <FeaturedProjects :projects="featured" :loading="loading" />
     <!-- Invisible anchor so /#teaching scrolls to the right place -->
     <span id="teaching" class="block" style="margin-top: -80px; padding-top: 80px;" aria-hidden="true" />
     <InsightsSection :publications="publications" :skills="skills" :experiences="experiences" :loading="loading" />
+    <ResearchSection :themes="research" :loading="loading" />
+    <AchievementsSection :achievements="achievements" :loading="loading" />
     <BlogSection :posts="posts" :loading="loading" />
     <CtaBanner />
   </div>
 </template>
-

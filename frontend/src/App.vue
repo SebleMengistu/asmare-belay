@@ -83,13 +83,7 @@
             </svg>
           </button>
 
-          <a
-            :href="cvDownloadUrl"
-            download="Asmare-Belay-CV.pdf"
-            target="_blank"
-            rel="noopener"
-            class="btn-outline-light hidden !py-2 sm:inline-flex"
-          >Download CV</a>
+          <RouterLink to="/cv" class="btn-outline-light hidden !py-2 sm:inline-flex">Download CV</RouterLink>
 
           <button
             type="button"
@@ -147,13 +141,7 @@
               {{ item.label }}
             </RouterLink>
           </template>
-          <a
-            :href="cvDownloadUrl"
-            download="Asmare-Belay-CV.pdf"
-            target="_blank"
-            rel="noopener"
-            class="btn-primary mt-3 w-full"
-          >Download CV</a>
+          <RouterLink to="/cv" class="btn-primary mt-3 w-full">Download CV</RouterLink>
         </nav>
       </Transition>
     </header>
@@ -235,13 +223,7 @@
           <p class="mt-4 text-sm leading-relaxed text-slate-400">
             Download my professional CV in PDF format.
           </p>
-          <a
-            :href="cvDownloadUrl"
-            download="Asmare-Belay-CV.pdf"
-            target="_blank"
-            rel="noopener"
-            class="btn-primary mt-4"
-          >Download CV <span aria-hidden="true">⬇</span></a>
+          <RouterLink to="/cv" class="btn-primary mt-4">View &amp; download CV <span aria-hidden="true">⬇</span></RouterLink>
         </div>
       </div>
 
@@ -292,23 +274,39 @@ onUnmounted(() => {
 // Home sections are reached via hash anchors; pages via real routes.
 const nav = [
   { label: 'Home', to: '/' },
-  { label: 'About', to: '/#about' },
+  { label: 'About', to: '/about' },
   {
-    label: 'Expertise',
+    label: 'Experience',
     children: [
-      { label: 'Skill', to: '/#skills' },
-      { label: 'Experience', to: '/#career' },
-      { label: 'Research', to: '/#research' },
+      { label: 'Experience', to: '/experience' },
+      { label: 'Education', to: '/education' },
     ],
   },
-  { label: 'Certification', to: '/#certification' },
-  { label: 'Project', to: '/#development' },
-  { label: 'Blog', to: '/#blog' },
+  {
+    label: 'Research',
+    children: [
+      { label: 'Research Themes', to: '/research' },
+      { label: 'Publications', to: '/publications' },
+    ],
+  },
+  { label: 'Projects', to: '/projects' },
+  { label: 'Skills', to: '/technologies' },
+  {
+    label: 'Credentials',
+    children: [
+      { label: 'Certifications', to: '/certifications' },
+      { label: 'Achievements', to: '/achievements' },
+      { label: 'Conferences', to: '/conferences' },
+    ],
+  },
+  { label: 'Services', to: '/services' },
+  { label: 'Blog', to: '/posts' },
+  { label: 'CV', to: '/cv' },
   { label: 'Contact', to: '/contact' },
 ]
 
 const quickLinks = nav.filter((item) =>
-  ['About', 'Skill', 'Experience', 'Research'].includes(item.label),
+  ['About', 'Experience', 'Education', 'Research Themes'].includes(item.label),
 )
 
 const footerServices = [
@@ -318,8 +316,6 @@ const footerServices = [
   { label: 'Training & Workshops', to: '/services' },
   { label: 'Water Resources Consulting', to: '/services' },
 ]
-
-const cvDownloadUrl = 'https://drive.google.com/uc?export=download&id=1L74ALZRo5IeAseGF3tybG-ECbCJWPij7'
 
 const footerSocials = useSocials(profile)
 

@@ -14,16 +14,28 @@ const error = ref('')
 const skills = ref([])
 
 const CATEGORIES = {
-  modeling: 'Hydrological Modeling',
-  gis: 'GIS & Remote Sensing',
-  programming: 'Programming',
-  research: 'Research & Analysis',
+  modeling: 'Hydrological, Hydraulic & Groundwater Modeling',
+  irrigation: 'Irrigation & Water Engineering',
+  gis: 'Geospatial, GIS & Remote Sensing',
+  programming: 'Programming & Data Analysis',
+  research: 'Climate & Research Analysis',
   tools: 'Tools & Platforms',
-  teaching: 'Teaching',
+  teaching: 'Teaching & Capacity Building',
   frontend: 'Frontend',
   backend: 'Backend',
   database: 'Database',
   general: 'General',
+}
+
+// Category accent dots — subtle color coding per group.
+const CATEGORY_COLORS = {
+  modeling: 'bg-brand-500',
+  irrigation: 'bg-cyan-500',
+  gis: 'bg-emerald-500',
+  programming: 'bg-amber-500',
+  research: 'bg-accent-500',
+  tools: 'bg-slate-400',
+  teaching: 'bg-violet-500',
 }
 
 const grouped = computed(() => {
@@ -83,30 +95,23 @@ onMounted(load)
     <div v-else-if="skills.length">
       <section v-for="key in categoryKeys" :key="key" class="card mb-6">
         <h2 class="inline-flex items-center gap-2 font-display text-lg font-bold text-navy-900 dark:text-white">
-          <span class="h-2.5 w-2.5 rounded-full bg-brand-500" aria-hidden="true" />
+          <span class="h-2.5 w-2.5 rounded-full" :class="CATEGORY_COLORS[key] || 'bg-brand-500'" aria-hidden="true" />
           {{ CATEGORIES[key] || key }}
         </h2>
         <p class="text-xs text-slate-400">{{ grouped[key].length }} skill{{ grouped[key].length === 1 ? '' : 's' }}</p>
 
-        <ul class="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        <ul class="mt-5 flex flex-wrap gap-2.5">
           <li
             v-for="skill in grouped[key]"
             :key="skill.id"
-            class="group flex flex-col rounded-xl border border-slate-200 p-4 transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md dark:border-white/10"
+            class="group inline-flex items-center gap-2.5 rounded-full border border-slate-200 bg-white px-4 py-2 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md dark:border-white/10 dark:bg-navy-850"
           >
-            <div class="flex items-center gap-3">
-              <SkillIcon :name="skill.name" tile-class="h-9 w-9 shrink-0" />
-              <span class="text-sm font-bold leading-tight text-navy-900 dark:text-white">{{ skill.name }}</span>
-            </div>
-            <div class="mt-3">
-              <div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-white/10">
-                <div
-                  class="h-full rounded-full bg-gradient-to-r from-brand-500 to-accent-500"
-                  :style="{ width: `${skill.level ?? 0}%` }"
-                />
-              </div>
-              <p class="mt-1 text-right text-[10px] font-semibold text-slate-400">{{ skill.level ?? 0 }}%</p>
-            </div>
+            <span
+              class="h-2 w-2 shrink-0 rounded-full"
+              :class="CATEGORY_COLORS[key] || 'bg-brand-500'"
+              aria-hidden="true"
+            />
+            <span class="text-sm font-semibold text-navy-900 dark:text-white">{{ skill.name }}</span>
           </li>
         </ul>
       </section>

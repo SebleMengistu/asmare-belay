@@ -19,8 +19,19 @@ const emptyForm = {
   summary: '',
   description: '',
   category: '',
+  role: '',
+  organization: '',
+  status: '',
+  problem: '',
+  objectives_text: '',
+  methods_text: '',
+  challenges_text: '',
+  solutions_text: '',
+  results_text: '',
   repo_url: '',
   demo_url: '',
+  documentation_url: '',
+  video_url: '',
   tech_stack_text: '',
   featured: false,
   is_active: true,
@@ -83,8 +94,19 @@ async function openEdit(row) {
       summary: p.summary ?? '',
       description: p.description ?? '',
       category: p.category ?? '',
+      role: p.role ?? '',
+      organization: p.organization ?? '',
+      status: p.status ?? '',
+      problem: p.problem ?? '',
+      objectives_text: Array.isArray(p.objectives) ? p.objectives.join('\n') : '',
+      methods_text: Array.isArray(p.methods) ? p.methods.join('\n') : '',
+      challenges_text: Array.isArray(p.challenges) ? p.challenges.join('\n') : '',
+      solutions_text: Array.isArray(p.solutions) ? p.solutions.join('\n') : '',
+      results_text: Array.isArray(p.results) ? p.results.join('\n') : '',
       repo_url: p.repo_url ?? '',
       demo_url: p.demo_url ?? '',
+      documentation_url: p.documentation_url ?? '',
+      video_url: p.video_url ?? '',
       tech_stack_text: Array.isArray(p.tech_stack) ? p.tech_stack.join(', ') : String(p.tech_stack ?? ''),
       featured: Boolean(p.featured),
       is_active: Boolean(p.is_active),
@@ -99,6 +121,13 @@ async function openEdit(row) {
   }
 }
 
+// One list item per line from a textarea.
+const splitLines = (text) =>
+  String(text || '')
+    .split('\n')
+    .map((s) => s.trim())
+    .filter(Boolean)
+
 function buildPayload() {
   const data = {
     title: form.value.title.trim(),
@@ -106,8 +135,19 @@ function buildPayload() {
     summary: form.value.summary.trim() || null,
     description: form.value.description.trim() || null,
     category: form.value.category.trim() || null,
+    role: form.value.role.trim() || null,
+    organization: form.value.organization.trim() || null,
+    status: form.value.status.trim() || null,
+    problem: form.value.problem.trim() || null,
+    objectives: splitLines(form.value.objectives_text),
+    methods: splitLines(form.value.methods_text),
+    challenges: splitLines(form.value.challenges_text),
+    solutions: splitLines(form.value.solutions_text),
+    results: splitLines(form.value.results_text),
     repo_url: form.value.repo_url.trim() || null,
     demo_url: form.value.demo_url.trim() || null,
+    documentation_url: form.value.documentation_url.trim() || null,
+    video_url: form.value.video_url.trim() || null,
     tech_stack: splitTech(form.value.tech_stack_text),
     featured: form.value.featured,
     is_active: form.value.is_active,
@@ -295,6 +335,21 @@ onMounted(() => {
         </label>
 
         <label class="block space-y-1">
+          <span class="text-sm font-medium text-slate-700">My role</span>
+          <input v-model="form.role" type="text" placeholder="Lead modeler, GIS analyst…" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+        </label>
+
+        <label class="block space-y-1">
+          <span class="text-sm font-medium text-slate-700">Organization / client</span>
+          <input v-model="form.organization" type="text" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+        </label>
+
+        <label class="block space-y-1">
+          <span class="text-sm font-medium text-slate-700">Status</span>
+          <input v-model="form.status" type="text" placeholder="Ongoing / Completed…" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+        </label>
+
+        <label class="block space-y-1">
           <span class="text-sm font-medium text-slate-700">Repo URL</span>
           <input v-model="form.repo_url" type="url" placeholder="https://github.com/…" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
           <span v-if="fieldErrors.repo_url" class="block text-xs text-red-600">{{ fieldErrors.repo_url[0] }}</span>
@@ -304,6 +359,16 @@ onMounted(() => {
           <span class="text-sm font-medium text-slate-700">Demo URL</span>
           <input v-model="form.demo_url" type="url" placeholder="https://…" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
           <span v-if="fieldErrors.demo_url" class="block text-xs text-red-600">{{ fieldErrors.demo_url[0] }}</span>
+        </label>
+
+        <label class="block space-y-1">
+          <span class="text-sm font-medium text-slate-700">Documentation URL</span>
+          <input v-model="form.documentation_url" type="url" placeholder="https://…" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+        </label>
+
+        <label class="block space-y-1">
+          <span class="text-sm font-medium text-slate-700">Video URL</span>
+          <input v-model="form.video_url" type="url" placeholder="https://…" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
         </label>
       </div>
 
@@ -316,6 +381,34 @@ onMounted(() => {
         <span class="text-sm font-medium text-slate-700">Description</span>
         <textarea v-model="form.description" rows="5" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"></textarea>
       </label>
+
+      <label class="block space-y-1">
+        <span class="text-sm font-medium text-slate-700">The Problem (case study)</span>
+        <textarea v-model="form.problem" rows="3" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"></textarea>
+      </label>
+
+      <div class="grid gap-3 sm:grid-cols-2">
+        <label class="block space-y-1">
+          <span class="text-sm font-medium text-slate-700">Objectives (one per line)</span>
+          <textarea v-model="form.objectives_text" rows="4" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"></textarea>
+        </label>
+        <label class="block space-y-1">
+          <span class="text-sm font-medium text-slate-700">Methodology (one per line)</span>
+          <textarea v-model="form.methods_text" rows="4" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"></textarea>
+        </label>
+        <label class="block space-y-1">
+          <span class="text-sm font-medium text-slate-700">Challenges (one per line)</span>
+          <textarea v-model="form.challenges_text" rows="4" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"></textarea>
+        </label>
+        <label class="block space-y-1">
+          <span class="text-sm font-medium text-slate-700">Solutions (one per line)</span>
+          <textarea v-model="form.solutions_text" rows="4" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"></textarea>
+        </label>
+        <label class="block space-y-1 sm:col-span-2">
+          <span class="text-sm font-medium text-slate-700">Results &amp; outcomes (one per line)</span>
+          <textarea v-model="form.results_text" rows="4" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"></textarea>
+        </label>
+      </div>
 
       <label class="block space-y-1">
         <span class="text-sm font-medium text-slate-700">Tech stack (comma separated)</span>

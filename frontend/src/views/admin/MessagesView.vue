@@ -114,6 +114,10 @@ onMounted(load)
         <span class="min-w-0 flex-1">
           <span class="font-medium text-slate-900">{{ message.name }}</span>
           <span class="ml-2 text-sm text-slate-400">{{ message.email }}</span>
+          <span
+            v-if="message.reason"
+            class="ml-2 rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-semibold text-brand-700 dark:bg-brand-600/15 dark:text-brand-300"
+          >{{ message.reason }}</span>
           <span v-if="message.subject" class="block truncate text-sm text-slate-600">{{ message.subject }}</span>
         </span>
         <time class="whitespace-nowrap text-xs text-slate-400">{{ fmtDate(message.created_at, { datetime: true }) }}</time>
@@ -123,6 +127,14 @@ onMounted(load)
         <div v-if="message.subject">
           <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Subject</dt>
           <dd class="mt-0.5 text-slate-800">{{ message.subject }}</dd>
+        </div>
+        <div v-if="message.organization">
+          <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Organization</dt>
+          <dd class="mt-0.5 text-slate-800">{{ message.organization }}</dd>
+        </div>
+        <div v-if="message.reason">
+          <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Reason</dt>
+          <dd class="mt-0.5 text-slate-800">{{ message.reason }}</dd>
         </div>
         <div>
           <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Message</dt>
