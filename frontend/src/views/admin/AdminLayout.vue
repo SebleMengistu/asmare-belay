@@ -54,7 +54,6 @@ const auth = useAuthStore()
 const items = [
   { label: 'Dashboard', to: '/admin' },
   { label: 'Profile', to: '/admin/profile' },
-  { label: 'Projects', to: '/admin/projects' },
   { label: 'Blog', to: '/admin/posts' },
   { label: 'Skills', to: '/admin/skills' },
   { label: 'Experience', to: '/admin/experiences' },

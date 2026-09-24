@@ -47,7 +47,6 @@ const routes = [
     children: [
       { path: '',               name: 'admin.dashboard',    component: () => import('../views/admin/DashboardView.vue') },
       { path: 'profile',        name: 'admin.profile',      component: () => import('../views/admin/ProfileAdminView.vue') },
-      { path: 'projects',       name: 'admin.projects',     component: () => import('../views/admin/ProjectsAdminView.vue') },
       { path: 'posts',          name: 'admin.posts',        component: () => import('../views/admin/PostsAdminView.vue') },
       { path: 'skills',         name: 'admin.skills',       ...adminCrud('skills') },
       { path: 'experiences',    name: 'admin.experiences',  ...adminCrud('experiences') },

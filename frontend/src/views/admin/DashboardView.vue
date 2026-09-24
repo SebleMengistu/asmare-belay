@@ -11,7 +11,6 @@ const data = ref(null)
 const analytics = ref(null)
 
 const counts = computed(() => [
-  { label: 'Projects', value: data.value?.counts?.projects ?? 0, accent: 'text-brand-700' },
   { label: 'Posts', value: data.value?.counts?.posts ?? 0, accent: 'text-slate-900' },
   { label: 'Published posts', value: data.value?.counts?.published_posts ?? 0, accent: 'text-emerald-700' },
   { label: 'Messages', value: data.value?.counts?.messages ?? 0, accent: 'text-slate-900' },

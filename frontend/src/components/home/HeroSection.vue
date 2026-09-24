@@ -50,6 +50,12 @@ function isStrokeIcon(key) {
 
 <template>
   <section id="home" class="circuit-bg relative scroll-mt-16 overflow-hidden">
+    <!-- Admin-managed cover image, blended over the circuit background -->
+    <div v-if="profile?.cover" class="absolute inset-0" aria-hidden="true">
+      <img :src="profile.cover" alt="" class="h-full w-full object-cover opacity-40" />
+      <div class="absolute inset-0 bg-gradient-to-r from-navy-950/85 via-navy-950/55 to-brand-900/30" />
+    </div>
+
     <!-- Vertical social rail -->
     <div
       class="absolute inset-y-0 right-5 z-20 hidden flex-col items-center justify-center gap-3 xl:flex"
