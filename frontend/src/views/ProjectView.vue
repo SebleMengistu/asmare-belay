@@ -204,7 +204,7 @@ onMounted(load)
             v-for="skill in project.skills"
             :key="skill.id"
             class="rounded-full px-2.5 py-0.5 text-xs font-medium text-white"
-            :style="{ backgroundColor: skill.color || '#4f46e5' }"
+            :style="{ backgroundColor: skill.color || '#0d8489' }"
           >
             {{ skill.name }}
           </span>

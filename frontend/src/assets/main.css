@@ -6,64 +6,64 @@
 
 /* ---------------------------------------------------------------------------
    ASMARE design system — tokens
-   Brand: deep navy surfaces, royal blue primary, violet gradient accents.
+   Brand: deep teal-navy surfaces, ocean-teal primary, aqua gradient accents.
 --------------------------------------------------------------------------- */
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-script: 'Great Vibes', cursive;
 
-  /* Royal blue — primary actions & links */
-  --color-brand-50:  #eef5ff;
-  --color-brand-100: #d9e8ff;
-  --color-brand-200: #b8d4ff;
-  --color-brand-300: #8bb8fe;
-  --color-brand-400: #5b95fb;
-  --color-brand-500: #3b76f6;
-  --color-brand-600: #2563eb;
-  --color-brand-700: #1d4fd8;
-  --color-brand-800: #1e40af;
-  --color-brand-900: #1e3a8a;
-  --color-brand-950: #172554;
+  /* Deep Ocean Teal — primary actions & links (hydrology-inspired) */
+  --color-brand-50:  #ecfbfa;
+  --color-brand-100: #cff5f2;
+  --color-brand-200: #a4e9e6;
+  --color-brand-300: #6ed7d4;
+  --color-brand-400: #34bdbd;
+  --color-brand-500: #17a3a6;
+  --color-brand-600: #0d8489;
+  --color-brand-700: #0f6a70;
+  --color-brand-800: #11555c;
+  --color-brand-900: #12464d;
+  --color-brand-950: #062c33;
 
-  /* Deep navy — dark surfaces (header, hero, footer) */
-  --color-navy-50:  #f2f6fc;
-  --color-navy-100: #e4ecf8;
-  --color-navy-200: #c3d4ee;
-  --color-navy-300: #93b1de;
-  --color-navy-400: #5d87c8;
-  --color-navy-500: #3a67ae;
-  --color-navy-600: #2a508c;
-  --color-navy-700: #23406e;
-  --color-navy-800: #14294d;
-  --color-navy-850: #0e1f42;
-  --color-navy-900: #0a1633;
-  --color-navy-950: #060d1f;
+  /* Deep teal-navy — dark surfaces (header, hero, footer) */
+  --color-navy-50:  #f0f7f8;
+  --color-navy-100: #dcefef;
+  --color-navy-200: #badee0;
+  --color-navy-300: #8cc8cc;
+  --color-navy-400: #55a7ae;
+  --color-navy-500: #348791;
+  --color-navy-600: #266b75;
+  --color-navy-700: #1f5760;
+  --color-navy-800: #123c45;
+  --color-navy-850: #0c2e36;
+  --color-navy-900: #082229;
+  --color-navy-950: #04161b;
 
   /* Ink — kept as an alias for the navy surfaces used across views */
-  --color-ink-900: #0a1633;
-  --color-ink-800: #0e1f42;
-  --color-ink-700: #14294d;
+  --color-ink-900: #082229;
+  --color-ink-800: #0c2e36;
+  --color-ink-700: #123c45;
 
-  /* Violet — gradient partner + accent text */
-  --color-accent-300: #c4b5fd;
-  --color-accent-400: #a78bfa;
-  --color-accent-500: #8b5cf6;
-  --color-accent-600: #7c3aed;
-  --color-accent-700: #6d28d9;
+  /* Aqua — gradient partner + accent text */
+  --color-accent-300: #7dd3fc;
+  --color-accent-400: #38bdf8;
+  --color-accent-500: #0ea5e9;
+  --color-accent-600: #0284c7;
+  --color-accent-700: #0369a1;
 }
 
 :root {
   color-scheme: light;
   --surface: #ffffff;
   --card: #ffffff;
-  --hero: #0a1633;
+  --hero: #082229;
 }
 
 html.dark {
   color-scheme: dark;
-  --surface: #060d1f;
-  --card: #0e1f42;
+  --surface: #04161b;
+  --card: #0c2e36;
 }
 
 html {
@@ -236,11 +236,11 @@ html.dark body {
    Decorative utilities
 --------------------------------------------------------------------------- */
 @utility circuit-bg {
-  background-color: #0a1633;
+  background-color: #082229;
   background-image:
-    radial-gradient(58rem 30rem at 82% 0%, rgb(37 99 235 / 0.16), transparent 62%),
-    radial-gradient(46rem 26rem at 8% 100%, rgb(139 92 246 / 0.12), transparent 60%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280' viewBox='0 0 280 280'%3E%3Cg fill='none' stroke='%232d5bd7' stroke-opacity='0.22' stroke-width='1.2'%3E%3Cpath d='M24 24h90v64h56'/%3E%3Cpath d='M256 256h-76v-56h-64'/%3E%3Cpath d='M212 24v52h44'/%3E%3Cpath d='M24 212h52v44'/%3E%3Cpath d='M140 140h56'/%3E%3Cpath d='M256 140v-52h-44'/%3E%3C/g%3E%3Cg fill='%233b76f6' fill-opacity='0.45'%3E%3Ccircle cx='24' cy='24' r='2.6'/%3E%3Ccircle cx='170' cy='88' r='2.6'/%3E%3Ccircle cx='256' cy='256' r='2.6'/%3E%3Ccircle cx='116' cy='200' r='2.6'/%3E%3Ccircle cx='256' cy='76' r='2.6'/%3E%3Ccircle cx='76' cy='256' r='2.6'/%3E%3Ccircle cx='196' cy='140' r='2.6'/%3E%3Ccircle cx='212' cy='76' r='2.6'/%3E%3C/g%3E%3C/svg%3E");
+    radial-gradient(58rem 30rem at 82% 0%, rgb(13 132 137 / 0.20), transparent 62%),
+    radial-gradient(46rem 26rem at 8% 100%, rgb(14 165 233 / 0.13), transparent 60%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280' viewBox='0 0 280 280'%3E%3Cg fill='none' stroke='%230d8489' stroke-opacity='0.22' stroke-width='1.2'%3E%3Cpath d='M24 24h90v64h56'/%3E%3Cpath d='M256 256h-76v-56h-64'/%3E%3Cpath d='M212 24v52h44'/%3E%3Cpath d='M24 212h52v44'/%3E%3Cpath d='M140 140h56'/%3E%3Cpath d='M256 140v-52h-44'/%3E%3C/g%3E%3Cg fill='%2317a3a6' fill-opacity='0.45'%3E%3Ccircle cx='24' cy='24' r='2.6'/%3E%3Ccircle cx='170' cy='88' r='2.6'/%3E%3Ccircle cx='256' cy='256' r='2.6'/%3E%3Ccircle cx='116' cy='200' r='2.6'/%3E%3Ccircle cx='256' cy='76' r='2.6'/%3E%3Ccircle cx='76' cy='256' r='2.6'/%3E%3Ccircle cx='196' cy='140' r='2.6'/%3E%3Ccircle cx='212' cy='76' r='2.6'/%3E%3C/g%3E%3C/svg%3E");
 }
 
 @utility dots-bg {

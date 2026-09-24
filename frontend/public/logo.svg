@@ -1,22 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="ASMARE BELAY logo">
   <defs>
     <linearGradient id="tGrad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#4DE1F5"/>
-      <stop offset="1" stop-color="#2563EB"/>
+      <stop offset="0" stop-color="#5EEAD4"/>
+      <stop offset="1" stop-color="#0D8489"/>
     </linearGradient>
     <linearGradient id="aGrad" x1="0" y1="0" x2="0.7" y2="1">
-      <stop offset="0" stop-color="#38BDF8"/>
-      <stop offset="1" stop-color="#1D4ED8"/>
+      <stop offset="0" stop-color="#22D3EE"/>
+      <stop offset="1" stop-color="#0F6A70"/>
     </linearGradient>
     <linearGradient id="barGrad" x1="0" y1="1" x2="0" y2="0">
-      <stop offset="0" stop-color="#6D28D9"/>
-      <stop offset="1" stop-color="#A855F7"/>
+      <stop offset="0" stop-color="#0284C7"/>
+      <stop offset="1" stop-color="#38BDF8"/>
     </linearGradient>
   </defs>
 
   <!-- navy disc with blue ring at its edge (transparent outside the circle) -->
-  <circle cx="512" cy="512" r="500" fill="#0A1128"/>
-  <circle cx="512" cy="512" r="490" fill="none" stroke="#1E6BF5" stroke-width="14"/>
+  <circle cx="512" cy="512" r="500" fill="#082229"/>
+  <circle cx="512" cy="512" r="490" fill="none" stroke="#17A3A6" stroke-width="14"/>
 
   <!-- A glyph (outlined, no crossbar) - drawn first so the T overlaps its left leg -->
   <g transform="translate(-72,-45)">
@@ -25,10 +25,10 @@
     <path d="M545 760 L700 450 L855 760" stroke="url(#aGrad)" stroke-width="9"/>
   </g>
   <!-- circuit trace down the A's right leg -->
-  <g fill="none" stroke="#38BDF8" stroke-width="6">
+  <g fill="none" stroke="#22D3EE" stroke-width="6">
     <path d="M744 368 L798 486 L858 626 L888 706"/>
   </g>
-  <g fill="#0A1128" stroke="#38BDF8" stroke-width="6">
+  <g fill="#082229" stroke="#22D3EE" stroke-width="6">
     <circle cx="744" cy="368" r="11"/>
     <circle cx="798" cy="486" r="11"/>
     <circle cx="858" cy="626" r="11"/>
@@ -36,13 +36,13 @@
   </g>
 
   <!-- T glyph (chamfered slab) -->
-  <path d="M312 292 H812 V346 H588 V748 H452 V346 H266 V338 Z" fill="#0C1535" stroke="url(#tGrad)" stroke-width="8" stroke-linejoin="miter"/>
+  <path d="M312 292 H812 V346 H588 V748 H452 V346 H266 V338 Z" fill="#0C2E36" stroke="url(#tGrad)" stroke-width="8" stroke-linejoin="miter"/>
   <!-- circuit trace across the T bar + drop into the stem -->
   <g fill="none" stroke="#22D3EE" stroke-width="6">
     <path d="M330 319 H676"/>
     <path d="M560 319 V446"/>
   </g>
-  <g fill="#0A1128" stroke="#22D3EE" stroke-width="6">
+  <g fill="#082229" stroke="#22D3EE" stroke-width="6">
     <circle cx="330" cy="319" r="10"/>
     <circle cx="676" cy="319" r="10"/>
     <circle cx="560" cy="446" r="10"/>
@@ -55,10 +55,10 @@
     <rect x="531" y="552" width="20" height="190" rx="3"/>
     <rect x="566" y="494" width="20" height="248" rx="3"/>
   </g>
-  <g fill="none" stroke="#A855F7" stroke-width="5">
+  <g fill="none" stroke="#38BDF8" stroke-width="5">
     <path d="M470 700 L512 616 L556 520"/>
   </g>
-  <g fill="#0A1128" stroke="#A855F7" stroke-width="5">
+  <g fill="#082229" stroke="#38BDF8" stroke-width="5">
     <circle cx="470" cy="700" r="10"/>
     <circle cx="512" cy="616" r="10"/>
     <circle cx="556" cy="520" r="10"/>
@@ -69,7 +69,7 @@
   <path d="M700 640 C732 618 772 614 796 626 C806 654 808 700 802 748 C766 736 732 740 700 756 Z" fill="#F8FAFC"/>
   <path d="M700 640 V756" stroke="#0A1128" stroke-width="5"/>
   <!-- page-fan swooshes beneath the book -->
-  <g fill="none" stroke="#1E6BF5">
+  <g fill="none" stroke="#17A3A6">
     <path d="M600 746 Q700 792 800 746" stroke-width="5"/>
     <path d="M612 762 Q700 802 788 762" stroke-width="6"/>
   </g>

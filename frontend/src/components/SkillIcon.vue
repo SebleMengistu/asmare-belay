@@ -71,7 +71,7 @@ const TILE_COLORS = {
 const key = computed(() => props.name.trim().toLowerCase())
 const iconPath = computed(() => ICONS[key.value])
 const isOdoo = computed(() => key.value === 'odoo')
-const fallbackColor = computed(() => TILE_COLORS[key.value] || '#2563eb')
+const fallbackColor = computed(() => TILE_COLORS[key.value] || '#0d8489')
 const fallbackLabel = computed(() => {
   const words = props.name.trim().split(/\s+/)
   return (words.length > 1 ? words.map((w) => w[0]).join('') : props.name.trim().slice(0, 2)).toUpperCase()
